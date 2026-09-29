@@ -1,15 +1,15 @@
-# 🚀 Party Rentals (unofficial name)
+# Party Rentals (unofficial name)
 
 To accomodate hosts that hold events in bars, helps them find renters for tables and such (app ver)
 
 ---
 
-## ✨ Features (To be added)
+## Features (To be added)
 
 
 ---
 
-## 👥 The Team
+## The Team
 
 Meet the teampura/three musketeers members
 
@@ -20,7 +20,7 @@ Meet the teampura/three musketeers members
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend:** 
 - **Backend:** 
