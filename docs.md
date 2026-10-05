@@ -56,8 +56,10 @@ Differentiation of Features
 | Export Guest List | Yes          | No               |
 
 **Business Process Flow Chart**
-![Business Process Flow Chart](./assets/Business_Workflow.png)
+![Business Process Flow Chart](./assets/images/Business_Workflow.png)
+
 **Entity Relationship Diagram**
-![Entity Relationship Diagram](./assets/ERD.png)
+![Entity Relationship Diagram](./assets/images/ERD.png)
+
 **System Architecture**  
-![System Architechture](./assets/System_Architechture.png)
+![System Architecture](./assets/images/System_Architechture.png)
