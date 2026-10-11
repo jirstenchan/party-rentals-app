@@ -14,48 +14,6 @@ export default function LoadingScreen() {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // ORIGINAL LOADING ANIMATION (NO LOOP)
-    // This only fills the progress bar once.
-    // Kept for reference.
-
-    /*
-    const animation = Animated.timing(progress, {
-      toValue: 1,
-      duration: 3000,
-      useNativeDriver: false,
-    });
-
-    animation.start();
-
-    return () => animation.stop();
-    */
-
-    // TEMPORARY LOOPING LOADING ANIMATION
-    // Kept for future UI testing.
-    // Currently disabled because we want navigation.
-
-    /*
-    const animation = Animated.loop(
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      }),
-      {
-        resetBeforeIteration: true,
-      },
-    );
-
-    animation.start();
-
-    return () => animation.stop();
-    */
-
-    // ACTIVE LOADING ANIMATION WITH NAVIGATION
-    // Fills the progress bar once for 3 seconds,
-    // then automatically opens Onboarding Screen 1.
-
     progress.setValue(0);
 
     const animation = Animated.timing(progress, {
