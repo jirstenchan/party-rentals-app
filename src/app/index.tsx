@@ -1,61 +1,91 @@
-import * as Device from "expo-device";
-import { Platform, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AnimatedIcon } from "@/components/animated-icon";
-import { HintRow } from "@/components/hint-row";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { WebBadge } from "@/components/web-badge";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-
-function getDevMenuHint() {
-  if (Platform.OS === "web") {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === "android" ? "cmd+m (or ctrl+m)" : "cmd+d";
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
 
 export default function HomeScreen() {
+  // Temporary mock array to generate the item cards shown in your wireframe
+  const items = ["one", "two"];
+
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        {/* titol icons hart notif */}
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.pageTitle}>Party Link</ThemedText>
+          <View style={styles.headerIcons}>
+            <Pressable style={styles.iconButton}>
+              <Ionicons
+                name="notifications-outline"
+                size={24}
+                color="#000000"
+              />
+            </Pressable>
+            <Pressable style={styles.iconButton}>
+              <Ionicons name="heart-outline" size={24} color="#000000" />
+            </Pressable>
+          </View>
+        </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        {/* ScrollView scroll thro events pero wa pay laman lol */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/*Search Bar*/}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search rentals..."
+              placeholderTextColor="#A0A0A0"
+            />
+            <Ionicons
+              name="search-outline"
+              size={20}
+              color="#A0A0A0"
+              style={styles.searchIcon}
+            />
+          </View>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+          {/*Filter Row */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesContainer}
+          >
+            <View
+              style={[styles.categoryCapsule, styles.activeCategoryCapsule]}
+            >
+              <ThemedText style={styles.activeCategoryText}>All</ThemedText>
+            </View>
+          </ScrollView>
 
-        {Platform.OS === "web" && <WebBadge />}
+          {/*Hardcoded Item Cards List */}
+          {items.map((item) => (
+            <View key={item} style={styles.card}>
+              {/* Left Side: Mock Image Placeholder Box */}
+              <View style={styles.imagePlaceholder}>
+                <Ionicons name="image-outline" size={36} color="#CCCCCC" />
+              </View>
+
+              {/* Right Side: Mock Details Lines */}
+              <View style={styles.cardDetails}>
+                <View style={styles.skeletonLineLong} />
+                <View style={styles.skeletonLineShort} />
+                <View style={styles.skeletonLineShort} />
+                <View style={styles.skeletonLineShort} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -64,35 +94,127 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: "center",
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#000000",
+    lineHeight: 34,
+  },
+  headerIcons: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    height: 46,
+    marginBottom: 16,
+  },
+  searchInput: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    height: "100%",
+    fontSize: 16,
+    color: "#000000",
   },
-  title: {
-    textAlign: "center",
+  searchIcon: {
+    marginLeft: 8,
   },
-  code: {
-    textTransform: "uppercase",
+  categoriesContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
+    maxHeight: 40,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: "stretch",
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  categoryCapsule: {
+    backgroundColor: "#F0F0F0",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  activeCategoryCapsule: {
+    backgroundColor: "#2D2D2D",
+  },
+  categoryText: {
+    color: "#666666",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  activeCategoryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  card: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 14,
+    height: 140,
+  },
+  imagePlaceholder: {
+    width: 100,
+    height: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#EBEBEB",
+  },
+  cardDetails: {
+    flex: 1,
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  skeletonLineLong: {
+    height: 12,
+    backgroundColor: "#D6D6D6",
+    borderRadius: 6,
+    width: "85%",
+    marginTop: 4,
+  },
+  skeletonLineShort: {
+    height: 8,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 4,
+    width: "40%",
+  },
+  cardButtonPlaceholder: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    height: 24,
+    width: 65,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
   },
 });
