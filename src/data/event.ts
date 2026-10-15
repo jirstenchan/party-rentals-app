@@ -70,6 +70,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 // ---------------------------------------------------------------------
 export const listEvents = () => request<Event[]>("/api/events");
 
+export const listMyEvents = () => request<Event[]>("/api/events?scope=mine");
+
 export const getEvent = (id: string) => request<Event>(`/api/events/${id}`);
 
 export const createEvent = (input: NewEvent) =>
