@@ -12,6 +12,7 @@ export default function RootLayout() {
   );
 }
 
+// Login & Sign-in
 // import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
 // import * as SplashScreen from "expo-splash-screen";
 // import { ActivityIndicator, useColorScheme } from "react-native";
