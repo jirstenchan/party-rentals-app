@@ -1,18 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ImageBackground,
-    KeyboardAvoidingView,
-    KeyboardTypeOptions,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  KeyboardTypeOptions,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -24,7 +24,7 @@ const BORDER = "#D1D1D6";
 const PLACEHOLDER = "#C7C7CC";
 const TEXT = "#000000";
 
-/* ----------------------------- small pieces ----------------------------- */
+/* small pieces */
 
 type FieldProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -159,7 +159,7 @@ function PrimaryButton({
   );
 }
 
-/* ------------------------------ main screen ----------------------------- */
+/* main screen */
 
 export function SignIn() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -269,7 +269,7 @@ export function SignIn() {
             showsVerticalScrollIndicator={false}
           >
             {signingUp ? (
-              /* ------------------------- CREATE ACCOUNT ------------------------- */
+              /* CREATE ACCOUNT */
               <>
                 <Text style={styles.signupTitle}>Create Account</Text>
                 <Text style={styles.signupSubtitle}>
@@ -356,7 +356,7 @@ export function SignIn() {
                 </View>
               </>
             ) : (
-              /* ------------------------------ LOGIN ----------------------------- */
+              /* LOGIN */
               <>
                 <Image
                   source={require("../../assets/images/setup/logo.png")}
@@ -425,7 +425,7 @@ export function SignIn() {
   );
 }
 
-/* --------------------------------- styles -------------------------------- */
+/* styles */
 
 const styles = StyleSheet.create({
   screen: {
