@@ -15,6 +15,21 @@ export type EventDto = {
   hostId: string;
 };
 
+export type EventTicketDto = {
+  ticketId: string;
+  eventId: string;
+  name: string;
+  ticketPrice: number;
+  salesStart: string | null; // "YYYY-MM-DD"
+  salesEnd: string | null; // "YYYY-MM-DD"
+};
+
+export type EventDetailDto = EventDto & {
+  description?: string | null;
+  tickets: EventTicketDto[];
+  // tables: EventTableDto[]; // later
+};
+
 // TODO: return the same token your getProfile() reads on the server.
 async function getToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
