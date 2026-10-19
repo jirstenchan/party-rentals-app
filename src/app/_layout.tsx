@@ -8,10 +8,13 @@
 //       <Stack.Screen name="onboarding-1" />
 //       <Stack.Screen name="onboarding-2" />
 //       <Stack.Screen name="onboarding-3" />
+//       <Stack.Screen name="login" />
+//       {/* <Stack.Screen name="dashboard" /> Create a file for dashboard */}
 //     </Stack>
 //   );
 // }
 
+// Remove later before pushing
 import { SignIn } from "@/components/sign-in";
 import { useSession } from "@/hooks/use-session";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
