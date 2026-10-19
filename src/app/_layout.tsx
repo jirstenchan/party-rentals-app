@@ -13,17 +13,17 @@
 // }
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { ActivityIndicator, useColorScheme } from "react-native";
 import { SignIn } from "@/components/sign-in";
 import { useSession } from "@/hooks/use-session";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
-import AppTabs from "@/components/app-tabs";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const session = useSession();
   return (
@@ -31,7 +31,12 @@ export default function TabLayout() {
       <AnimatedSplashOverlay />
       {session === undefined && <ActivityIndicator style={{ flex: 1 }} />}
       {session === null && <SignIn />}
-      {session && <AppTabs />}
+      {session && (
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="event/[id]" options={{ title: "Event" }} />
+        </Stack>
+      )}
     </ThemeProvider>
   );
 }

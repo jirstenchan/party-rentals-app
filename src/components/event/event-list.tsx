@@ -1,6 +1,6 @@
 // src/components/event-list.tsx
 // Just the scrolling list. The screen decides the layout around it.
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +9,7 @@ import {
   StyleProp,
   StyleSheet,
   ViewStyle,
+  Pressable,
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -22,6 +23,7 @@ type Props = {
   showStatus?: boolean; // show draft/cancelled labels
   style?: StyleProp<ViewStyle>; // style for the list itself
   contentContainerStyle?: StyleProp<ViewStyle>; // padding inside the scroll area
+  //onPress?: (event: EventDto) => void;
 };
 
 const formatDate = (iso: string) =>
@@ -44,6 +46,8 @@ export function EventList({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
 
   const load = useCallback(async () => {
     try {
@@ -85,21 +89,28 @@ export function EventList({
         </ThemedText>
       }
       renderItem={({ item }) => (
-        <ThemedView type="backgroundElement" style={styles.card}>
-          <ThemedText type="default" style={styles.cardTitle}>
-            {item.name}
-          </ThemedText>
-          <ThemedText type="small">{formatDate(item.startTime)}</ThemedText>
-          {item.location ? (
-            <ThemedText type="small">{item.location}</ThemedText>
-          ) : null}
-          {item.capacity ? (
-            <ThemedText type="small">Capacity: {item.capacity}</ThemedText>
-          ) : null}
-          {showStatus && item.status !== "published" ? (
-            <ThemedText type="code">{item.status}</ThemedText>
-          ) : null}
-        </ThemedView>
+        <Pressable
+          onPress={() =>
+            router.push({ pathname: "/event/[id]", params: { id: item.id } })
+          }
+          style={({ pressed }) => pressed && { opacity: 0.7 }}
+        >
+          <ThemedView type="backgroundElement" style={styles.card}>
+            <ThemedText type="default" style={styles.cardTitle}>
+              {item.name}
+            </ThemedText>
+            <ThemedText type="small">{formatDate(item.startTime)}</ThemedText>
+            {item.location ? (
+              <ThemedText type="small">{item.location}</ThemedText>
+            ) : null}
+            {item.capacity ? (
+              <ThemedText type="small">Capacity: {item.capacity}</ThemedText>
+            ) : null}
+            {showStatus && item.status !== "published" ? (
+              <ThemedText type="code">{item.status}</ThemedText>
+            ) : null}
+          </ThemedView>
+        </Pressable>
       )}
     />
   );
