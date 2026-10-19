@@ -1,6 +1,9 @@
 **Party Link (party-rentals)**  
 Please refer to our jira for more detailed documentation.
 
+**Party Link (Sprint)**
+https://docs.google.com/document/d/1E_zc4DScCq1JUorVE_B37bajDGg5v5OpNIFdOPbf1Vw/edit?usp=sharing
+
 **Overview**
 
 - **Problem:** Party hosts often manage registrations through Instagram and other social media pages, making important information such as pricing, event details, location, availability, and registration difficult to find and inconsistent across hosts.
