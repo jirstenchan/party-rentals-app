@@ -26,6 +26,7 @@ export type EventTicketDto = {
 
 export type EventDetailDto = EventDto & {
   description?: string | null;
+  endTime?: string | null;
   tickets: EventTicketDto[];
   // tables: EventTableDto[]; // later
 };
@@ -47,5 +48,25 @@ export async function fetchEvents(scope?: "mine"): Promise<EventDto[]> {
 
   if (res.status === 401) throw new Error("You need to sign in to see events.");
   if (!res.ok) throw new Error("Couldn't load events. Pull down to try again.");
+  return res.json();
+}
+
+export async function fetchEvent(id: string): Promise<EventDetailDto> {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}/api/events/${id}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  // //TEMP
+
+  // const data = await res.json();
+  // console.log("EVENT DETAIL", JSON.stringify(data, null, 2));
+  // return data;
+
+  if (res.status === 401)
+    throw new Error("You need to sign in to see this event.");
+  if (res.status === 404)
+    throw new Error("This event doesn't exist or was removed.");
+  if (!res.ok) throw new Error("Couldn't load this event. Please try again.");
   return res.json();
 }
