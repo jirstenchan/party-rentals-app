@@ -1,8 +1,9 @@
 // src/app/event/[id].tsx
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -49,12 +50,22 @@ const salesLabel = (t: EventTicketDto) => {
   return null;
 };
 
+const isOnSale = (t: EventTicketDto) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (t.salesStart && parseDay(t.salesStart) > today) return false;
+  if (t.salesEnd && parseDay(t.salesEnd) < today) return false;
+  return true;
+};
+
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<EventDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     try {
@@ -131,6 +142,7 @@ export default function EventDetailScreen() {
         ) : (
           tickets.map((ticket) => {
             const label = salesLabel(ticket);
+            const canBuy = isOnSale(ticket);
             return (
               <ThemedView
                 key={ticket.ticketId}
@@ -142,6 +154,25 @@ export default function EventDetailScreen() {
                   {formatPrice(ticket.ticketPrice)}
                 </ThemedText>
                 {label ? <ThemedText type="small">{label}</ThemedText> : null}
+                <Pressable
+                  disabled={!canBuy}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/buy",
+                      params: {
+                        eventId: event.id,
+                        ticketId: ticket.ticketId,
+                      },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.buyButton,
+                    !canBuy && styles.buyButtonDisabled,
+                    pressed && styles.buyButtonPressed,
+                  ]}
+                >
+                  <ThemedText style={styles.buyButtonText}>Buy</ThemedText>
+                </Pressable>
               </ThemedView>
             );
           })
@@ -174,4 +205,14 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   cardTitle: { fontWeight: "600" },
+  buyButton: {
+    marginTop: Spacing.two,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+    backgroundColor: "#208AEF",
+    alignItems: "center",
+  },
+  buyButtonDisabled: { opacity: 0.4 },
+  buyButtonPressed: { opacity: 0.8 },
+  buyButtonText: { color: "#fff", fontWeight: "600" },
 });
