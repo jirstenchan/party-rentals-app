@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import { File } from "expo-file-system";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
-// Adjust to whatever your toEventDto returns.
 export type EventDto = {
   id: string;
   name: string;
@@ -13,6 +13,7 @@ export type EventDto = {
   endTime: string;
   status: "draft" | "published" | "cancelled";
   hostId: string;
+  paymentQrUrl?: string | null; // image the host uploaded
 };
 
 export type EventTicketDto = {
@@ -57,16 +58,45 @@ export async function fetchEvent(id: string): Promise<EventDetailDto> {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  // //TEMP
-
-  // const data = await res.json();
-  // console.log("EVENT DETAIL", JSON.stringify(data, null, 2));
-  // return data;
-
   if (res.status === 401)
     throw new Error("You need to sign in to see this event.");
   if (res.status === 404)
     throw new Error("This event doesn't exist or was removed.");
   if (!res.ok) throw new Error("Couldn't load this event. Please try again.");
+  return res.json();
+}
+
+export type TicketDetailDto = EventTicketDto & {
+  event: EventDto;
+};
+
+export async function fetchTicket(id: string): Promise<TicketDetailDto> {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}/api/ticket/${id}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (res.status === 401)
+    throw new Error("You need to sign in to buy a ticket.");
+  if (res.status === 404)
+    throw new Error("This ticket doesn't exist or was removed.");
+  if (!res.ok) throw new Error("Couldn't load this ticket. Please try again.");
+  return res.json();
+}
+
+export async function submitPayment(ticketId: string, proofUri: string) {
+  const token = await getToken();
+  const form = new FormData();
+  form.append("ticketId", ticketId);
+  form.append("proof", new File(proofUri));
+
+  const res = await fetch(`${API_URL}/api/payments`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  if (res.status === 401) throw new Error("You need to sign in to pay.");
+  if (!res.ok) throw new Error("Couldn't send your payment. Please try again.");
   return res.json();
 }

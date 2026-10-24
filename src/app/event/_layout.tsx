@@ -3,7 +3,7 @@ export default function CustomersLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
       }}
     />
   );
