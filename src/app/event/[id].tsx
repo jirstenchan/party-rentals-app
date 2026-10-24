@@ -13,6 +13,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
+import { Image } from "react-native";
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -132,6 +133,14 @@ export default function EventDetailScreen() {
             {event.description}
           </ThemedText>
         ) : null}
+        {/* MAP */}
+        {event.mapUrl ? (
+          <Image
+            source={{ uri: event.mapUrl }}
+            style={styles.eventImage}
+            resizeMode="cover"
+          />
+        ) : null}
 
         {/* Tickets */}
         <ThemedText type="default" style={styles.sectionTitle}>
@@ -215,4 +224,9 @@ const styles = StyleSheet.create({
   buyButtonDisabled: { opacity: 0.4 },
   buyButtonPressed: { opacity: 0.8 },
   buyButtonText: { color: "#fff", fontWeight: "600" },
+  eventImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+  },
 });

@@ -11,6 +11,8 @@ import { Spacing } from "@/constants/theme";
 import { createEvent, deleteEvent } from "@/data/event";
 import { problemFor } from "@/data/problem";
 import { addTicket, NewTicket } from "@/data/ticket";
+import { ImagePickerField } from "@/components/event/image-picker-field";
+import { deleteEventImage, PickedImage, uploadEventImage } from "@/data/image";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -28,6 +30,7 @@ export function CreateEventForm({ onCreated }: Props) {
   const [tickets, setTickets] = useState<NewTicket[]>([]);
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [status, setStatus] = useState("");
+  const [image, setImage] = useState<PickedImage | null>(null);
 
   function resetForm() {
     const now = new Date();
@@ -38,6 +41,7 @@ export function CreateEventForm({ onCreated }: Props) {
     setStartTime(now);
     setEndTime(new Date(now.getTime() + HOUR));
     setTickets([]);
+    setImage(null);
   }
 
   async function handleCreate() {
@@ -65,8 +69,17 @@ export function CreateEventForm({ onCreated }: Props) {
       return;
     }
 
+    let uploadedPath: string | null = null;
+
     try {
       setStatus("Creating...");
+
+      let mapUrl: string | null = null;
+      if (image) {
+        const uploaded = await uploadEventImage(image);
+        uploadedPath = uploaded.path;
+        mapUrl = uploaded.publicUrl;
+      }
 
       const created = await createEvent({
         name: name.trim(),
@@ -76,6 +89,7 @@ export function CreateEventForm({ onCreated }: Props) {
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         status: "published",
+        mapUrl,
       });
 
       const results = await Promise.allSettled(
@@ -95,6 +109,7 @@ export function CreateEventForm({ onCreated }: Props) {
       resetForm();
       await onCreated();
     } catch (e) {
+      if (uploadedPath) await deleteEventImage(uploadedPath).catch(() => {});
       setStatus("Create failed: " + problemFor(e));
     }
   }
@@ -143,6 +158,8 @@ export function CreateEventForm({ onCreated }: Props) {
         onClose={() => setTicketModalVisible(false)}
         onSave={(ticket) => setTickets((prev) => [...prev, ticket])}
       />
+
+      <ImagePickerField value={image} onChange={setImage} />
     </ThemedView>
   );
 }
