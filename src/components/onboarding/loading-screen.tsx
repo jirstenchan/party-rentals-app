@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
-    Animated,
-    Easing,
-    Image,
-    ImageBackground,
-    StyleSheet,
-    View,
+  Animated,
+  Easing,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  View,
 } from "react-native";
 
 export default function LoadingScreen() {

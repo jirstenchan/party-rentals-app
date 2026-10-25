@@ -1,4 +1,3 @@
-//
 import AppTabs from "@/components/app-tabs";
 import { useSession } from "@/hooks/use-session";
 import { Redirect } from "expo-router";
