@@ -1,3 +1,4 @@
+import { ConfirmCreateModal } from "@/components/event/create-event-confirmation-modal";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function CreateEventForm({ onCreated }: Props) {
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -315,7 +317,7 @@ export function CreateEventForm({ onCreated }: Props) {
       ) : null}
 
       <Pressable
-        onPress={handleCreate}
+        onPress={() => setConfirmVisible(true)}
         style={({ pressed }) => [
           styles.createButton,
           pressed && styles.createButtonPressed,
@@ -328,6 +330,15 @@ export function CreateEventForm({ onCreated }: Props) {
         visible={ticketModalVisible}
         onClose={() => setTicketModalVisible(false)}
         onSave={(ticket) => setTickets((previous) => [...previous, ticket])}
+      />
+
+      <ConfirmCreateModal
+        visible={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={() => {
+          setConfirmVisible(false);
+          void handleCreate();
+        }}
       />
     </View>
   );
