@@ -5,11 +5,11 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleProp,
   StyleSheet,
   ViewStyle,
-  Pressable,
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
