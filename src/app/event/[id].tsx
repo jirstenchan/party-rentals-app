@@ -88,7 +88,13 @@ export default function EventDetailScreen() {
     setRefreshing(false);
   };
 
-  if (loading) return <ActivityIndicator style={styles.loading} />;
+  if (loading)
+    return (
+      <>
+        <Stack.Screen options={{ title: "Loading..." }} />
+        <ActivityIndicator style={styles.loading} />
+      </>
+    );
 
   if (!event) {
     return (
