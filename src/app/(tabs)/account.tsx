@@ -293,4 +293,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "700",
   },
+
+  // Button
+  pressed: {
+    opacity: 0.85,
+  },
 });
