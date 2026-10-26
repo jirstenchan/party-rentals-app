@@ -11,6 +11,8 @@ export type Event = {
   startTime: string; // ISO string
   endTime: string; // ISO string
   status: EventStatus;
+  mapUrl: string | null;
+  paymentQrUrl: string | null;
 };
 
 // What you send when creating an event
@@ -22,6 +24,8 @@ export type NewEvent = {
   startTime: string; // use date.toISOString()
   endTime: string;
   status?: EventStatus;
+  mapUrl?: string | null;
+  paymentQrUrl?: string | null;
 };
 
 export type EventUpdate = Partial<NewEvent>;

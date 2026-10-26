@@ -69,7 +69,7 @@ export default function PaymentScreen() {
     try {
       setSubmitting(true);
       // TODO Uncomment this when /api/payments is implemented
-      // await submitPayment(ticketId, proof.uri);
+      //await submitPayment(ticketId, proof.uri);
       // replace, not push: this screen is removed from the history
       router.replace({
         pathname: "/payment-proof",
