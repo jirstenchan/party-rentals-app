@@ -13,6 +13,7 @@ export type Event = {
   status: EventStatus;
   mapUrl: string | null;
   paymentQrUrl: string | null;
+  eventImageUrl: string | null;
 };
 
 // What you send when creating an event
@@ -26,6 +27,7 @@ export type NewEvent = {
   status?: EventStatus;
   mapUrl?: string | null;
   paymentQrUrl?: string | null;
+  eventImageUrl: string | null;
 };
 
 export type EventUpdate = Partial<NewEvent>;

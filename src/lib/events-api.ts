@@ -14,7 +14,8 @@ export type EventDto = {
   status: "draft" | "published" | "cancelled";
   hostId: string;
   paymentQrUrl?: string | null; // image the host uploaded
-  mapUrl: string | null;
+  mapUrl: string | null; // map image upload
+  eventImageUrl: string | null; //Events Graphics
 };
 
 export type EventTicketDto = {

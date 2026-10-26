@@ -118,6 +118,13 @@ export default function EventDetailScreen() {
         }
       >
         {/* Overview */}
+        {event.eventImageUrl ? (
+          <Image
+            source={{ uri: event.eventImageUrl }}
+            style={styles.eventImage}
+            resizeMode="cover"
+          />
+        ) : null}
         <ThemedText type="subtitle">{event.name}</ThemedText>
         {event.status !== "published" ? (
           <ThemedText type="code">{event.status}</ThemedText>

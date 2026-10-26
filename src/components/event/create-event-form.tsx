@@ -15,9 +15,11 @@ import { ImagePickerField } from "@/components/event/image-picker-field";
 import {
   deleteEventImage,
   deleteHostQr,
+  deleteEventGraphic,
   PickedImage,
   uploadEventImage,
   uploadHostQr,
+  uploadEventGraphic,
 } from "@/data/image";
 
 const HOUR = 60 * 60 * 1000;
@@ -38,6 +40,8 @@ export function CreateEventForm({ onCreated }: Props) {
   const [status, setStatus] = useState("");
   const [map, setMap] = useState<PickedImage | null>(null);
   const [qrPayment, setQrPayment] = useState<PickedImage | null>(null);
+  const [eventGraphicImage, setEventGraphicImage] =
+    useState<PickedImage | null>(null);
 
   function resetForm() {
     const now = new Date();
@@ -50,6 +54,7 @@ export function CreateEventForm({ onCreated }: Props) {
     setTickets([]);
     setMap(null);
     setQrPayment(null);
+    setEventGraphicImage(null);
   }
 
   async function handleCreate() {
@@ -79,11 +84,15 @@ export function CreateEventForm({ onCreated }: Props) {
 
     let uploadedMapPath: string | null = null;
     let uploadedQrPath: string | null = null;
+    let uploadedGraphicImagePath: string | null = null;
 
     async function cleanupUploadedImages() {
       const results = await Promise.allSettled([
         ...(uploadedMapPath ? [deleteEventImage(uploadedMapPath)] : []),
         ...(uploadedQrPath ? [deleteHostQr(uploadedQrPath)] : []),
+        ...(uploadedGraphicImagePath
+          ? [deleteEventGraphic(uploadedGraphicImagePath)]
+          : []),
       ]);
       return results.every((result) => result.status === "fulfilled");
     }
@@ -93,6 +102,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
       let mapUrl: string | null = null;
       let paymentQrUrl: string | null = null;
+      let eventImageUrl: string | null = null;
       if (map) {
         const uploaded = await uploadEventImage(map);
         uploadedMapPath = uploaded.path;
@@ -102,6 +112,11 @@ export function CreateEventForm({ onCreated }: Props) {
         const uploaded = await uploadHostQr(qrPayment);
         uploadedQrPath = uploaded.path;
         paymentQrUrl = uploaded.publicUrl;
+      }
+      if (eventGraphicImage) {
+        const uploaded = await uploadEventGraphic(eventGraphicImage);
+        uploadedGraphicImagePath = uploaded.path;
+        eventImageUrl = uploaded.publicUrl;
       }
 
       const created = await createEvent({
@@ -114,6 +129,7 @@ export function CreateEventForm({ onCreated }: Props) {
         status: "published",
         mapUrl,
         paymentQrUrl,
+        eventImageUrl,
       });
 
       const results = await Promise.allSettled(
@@ -200,6 +216,12 @@ export function CreateEventForm({ onCreated }: Props) {
         onChange={setQrPayment}
         text={"+ Add QR payment"}
         aspect={[1, 1]}
+      />
+
+      <ImagePickerField
+        value={eventGraphicImage}
+        onChange={setEventGraphicImage}
+        text={"+ Add Event Image"}
       />
     </ThemedView>
   );
