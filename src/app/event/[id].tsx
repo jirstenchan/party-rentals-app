@@ -13,6 +13,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
+import { Image } from "react-native";
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -87,7 +88,13 @@ export default function EventDetailScreen() {
     setRefreshing(false);
   };
 
-  if (loading) return <ActivityIndicator style={styles.loading} />;
+  if (loading)
+    return (
+      <>
+        <Stack.Screen options={{ title: "Loading..." }} />
+        <ActivityIndicator style={styles.loading} />
+      </>
+    );
 
   if (!event) {
     return (
@@ -111,6 +118,13 @@ export default function EventDetailScreen() {
         }
       >
         {/* Overview */}
+        {event.eventImageUrl ? (
+          <Image
+            source={{ uri: event.eventImageUrl }}
+            style={styles.eventImage}
+            resizeMode="cover"
+          />
+        ) : null}
         <ThemedText type="subtitle">{event.name}</ThemedText>
         {event.status !== "published" ? (
           <ThemedText type="code">{event.status}</ThemedText>
@@ -131,6 +145,14 @@ export default function EventDetailScreen() {
           <ThemedText style={styles.description}>
             {event.description}
           </ThemedText>
+        ) : null}
+        {/* MAP */}
+        {event.mapUrl ? (
+          <Image
+            source={{ uri: event.mapUrl }}
+            style={styles.eventImage}
+            resizeMode="cover"
+          />
         ) : null}
 
         {/* Tickets */}
@@ -215,4 +237,9 @@ const styles = StyleSheet.create({
   buyButtonDisabled: { opacity: 0.4 },
   buyButtonPressed: { opacity: 0.8 },
   buyButtonText: { color: "#fff", fontWeight: "600" },
+  eventImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+  },
 });
