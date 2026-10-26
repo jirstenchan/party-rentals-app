@@ -23,11 +23,6 @@ const SECTIONS = [
         label: "Personal Information",
         icon: "person-outline",
       },
-      {
-        id: "notifications",
-        label: "Notifications",
-        icon: "notifications-outline",
-      },
     ],
   },
   {
@@ -228,7 +223,7 @@ const styles = StyleSheet.create({
   },
   logOutText: {
     color: PURPLE,
-    fontSize: 24,
+    fontSize: 20,
     lineHeight: 32,
     fontWeight: "700",
   },
