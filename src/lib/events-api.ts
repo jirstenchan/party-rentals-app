@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { File } from "expo-file-system";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -13,9 +12,9 @@ export type EventDto = {
   endTime: string;
   status: "draft" | "published" | "cancelled";
   hostId: string;
-  paymentQrUrl?: string | null; // image the host uploaded
-  mapUrl: string | null; // map image upload
-  eventImageUrl: string | null; //Events Graphics
+  paymentQrUrl?: string | null;
+  mapUrl: string | null;
+  eventImageUrl: string | null;
 };
 
 export type EventTicketDto = {
@@ -23,30 +22,43 @@ export type EventTicketDto = {
   eventId: string;
   name: string;
   ticketPrice: number;
-  salesStart: string | null; // "YYYY-MM-DD"
-  salesEnd: string | null; // "YYYY-MM-DD"
+  salesStart: string | null;
+  salesEnd: string | null;
 };
 
 export type EventDetailDto = EventDto & {
   description?: string | null;
   endTime?: string | null;
   tickets: EventTicketDto[];
-  // tables: EventTableDto[]; // later
 };
 
-// TODO: return the same token your getProfile() reads on the server.
 async function getToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
+}
+
+function authHeaders(token: string | null): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function getApiError(res: Response, fallback: string): Promise<Error> {
+  const body: unknown = await res.json().catch(() => null);
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "error" in body &&
+    typeof body.error === "string"
+  ) {
+    return new Error(body.error);
+  }
+  return new Error(fallback);
 }
 
 export async function fetchEvents(scope?: "mine"): Promise<EventDto[]> {
   const token = await getToken();
   const res = await fetch(
     `${API_URL}/api/events${scope ? `?scope=${scope}` : ""}`,
-    {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    },
+    { headers: authHeaders(token) },
   );
 
   if (res.status === 401) throw new Error("You need to sign in to see events.");
@@ -57,7 +69,7 @@ export async function fetchEvents(scope?: "mine"): Promise<EventDto[]> {
 export async function fetchEvent(id: string): Promise<EventDetailDto> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: authHeaders(token),
   });
 
   if (res.status === 401)
@@ -75,7 +87,7 @@ export type TicketDetailDto = EventTicketDto & {
 export async function fetchTicket(id: string): Promise<TicketDetailDto> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/ticket/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: authHeaders(token),
   });
 
   if (res.status === 401)
@@ -86,19 +98,57 @@ export async function fetchTicket(id: string): Promise<TicketDetailDto> {
   return res.json();
 }
 
-export async function submitPayment(ticketId: string, proofUri: string) {
-  const token = await getToken();
-  const form = new FormData();
-  form.append("ticketId", ticketId);
-  form.append("proof", new File(proofUri));
+export type TicketReservationDto = {
+  reservationId: string;
+  reservationItemId: string;
+  ticketId: string;
+  paymentRequired: boolean;
+};
 
+export async function createTicketReservation(
+  ticketId: string,
+): Promise<TicketReservationDto> {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}/api/reservations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ ticketId }),
+  });
+
+  if (!res.ok) {
+    throw await getApiError(
+      res,
+      "Couldn't reserve this ticket. Please try again.",
+    );
+  }
+  const result: { data: TicketReservationDto } = await res.json();
+  return result.data;
+}
+
+export async function submitPayment(
+  reservationItemId: string,
+  referenceNum: string,
+  screenshotUrl: string,
+) {
+  const token = await getToken();
   const res = await fetch(`${API_URL}/api/payments`, {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ reservationItemId, referenceNum, screenshotUrl }),
   });
 
   if (res.status === 401) throw new Error("You need to sign in to pay.");
-  if (!res.ok) throw new Error("Couldn't send your payment. Please try again.");
+  if (!res.ok) {
+    throw await getApiError(
+      res,
+      "Couldn't send your payment. Please try again.",
+    );
+  }
   return res.json();
 }

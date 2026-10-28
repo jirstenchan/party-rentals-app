@@ -29,12 +29,15 @@ const formatDateTime = (iso: string) =>
   });
 
 export default function PaymentProofScreen() {
-  const { ticketId } = useLocalSearchParams<{ ticketId: string }>();
+  const { ticketId, paymentRequired: paymentRequiredParam } =
+    useLocalSearchParams<{
+      ticketId: string;
+      paymentRequired?: string;
+    }>();
+  const paymentRequired = paymentRequiredParam !== "false";
   const proof = getProofDraft();
 
   const router = useRouter();
-
-  console.log("proof draft", proof);
 
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +66,7 @@ export default function PaymentProofScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen
         options={{
-          title: "Payment sent",
+          title: paymentRequired ? "Payment sent" : "Ticket confirmed",
           headerBackVisible: false,
           gestureEnabled: false,
         }}
@@ -71,10 +74,14 @@ export default function PaymentProofScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedView type="backgroundElement" style={styles.card}>
           <ThemedText style={styles.cardTitle}>
-            The host will review your payment
+            {paymentRequired
+              ? "The host will review your payment"
+              : "Your free ticket is confirmed"}
           </ThemedText>
           <ThemedText type="small">
-            You'll be notified once your booking is confirmed.
+            {paymentRequired
+              ? "You'll be notified once your booking is confirmed."
+              : "No payment is due for this ticket."}
           </ThemedText>
         </ThemedView>
 
@@ -103,21 +110,25 @@ export default function PaymentProofScreen() {
           </>
         ) : null}
 
-        <ThemedText style={styles.sectionTitle}>Proof of payment</ThemedText>
-        <ThemedView type="backgroundElement" style={styles.card}>
-          {proof ? (
-            <>
-              <Image
-                source={{ uri: proof.uri }}
-                style={styles.proof}
-                resizeMode="contain"
-              />
-              <ThemedText type="small" numberOfLines={1}>
-                {proof.name}
-              </ThemedText>
-            </>
-          ) : null}
-        </ThemedView>
+        {paymentRequired ? (
+          <>
+            <ThemedText style={styles.sectionTitle}>Proof of payment</ThemedText>
+            <ThemedView type="backgroundElement" style={styles.card}>
+              {proof ? (
+                <>
+                  <Image
+                    source={{ uri: proof.uri }}
+                    style={styles.proof}
+                    resizeMode="contain"
+                  />
+                  <ThemedText type="small" numberOfLines={1}>
+                    {proof.name}
+                  </ThemedText>
+                </>
+              ) : null}
+            </ThemedView>
+          </>
+        ) : null}
 
         <Pressable
           onPress={goHome}
