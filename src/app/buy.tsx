@@ -12,7 +12,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
-import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
+import {
+  createTicketReservation,
+  EventDetailDto,
+  EventTicketDto,
+  fetchEvent,
+} from "@/lib/events-api";
+import { setProofDraft } from "@/lib/payment-draft";
 
 const formatPrice = (price: number) =>
   price === 0 ? "Free" : `$${price.toFixed(2)}`;
@@ -40,6 +46,37 @@ export default function BuyScreen() {
   const [ticket, setTicket] = useState<EventTicketDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reserving, setReserving] = useState(false);
+
+  async function proceedToPay() {
+    if (!ticket) return;
+    try {
+      setReserving(true);
+      const reservation = await createTicketReservation(ticket.ticketId);
+      if (!reservation.paymentRequired) {
+        setProofDraft(null);
+        router.replace({
+          pathname: "/payment-proof",
+          params: { ticketId: ticket.ticketId, paymentRequired: "false" },
+        });
+        return;
+      }
+      router.push({
+        pathname: "/payment",
+        params: {
+          ticketId: ticket.ticketId,
+          reservationItemId: reservation.reservationItemId,
+        },
+      });
+    } catch (err) {
+      Alert.alert(
+        "Couldn't reserve ticket",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    } finally {
+      setReserving(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -107,15 +144,18 @@ export default function BuyScreen() {
         ]}
       >
         <Pressable
-          onPress={() =>
-            router.push({ pathname: "/payment", params: { ticketId } })
-          }
+          onPress={proceedToPay}
+          disabled={reserving}
           style={({ pressed }) => [
             styles.payButton,
-            pressed && { opacity: 0.8 },
+            (pressed || reserving) && { opacity: 0.8 },
           ]}
         >
-          <ThemedText style={styles.payButtonText}>Proceed to pay</ThemedText>
+          {reserving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <ThemedText style={styles.payButtonText}>Proceed to pay</ThemedText>
+          )}
         </Pressable>
       </ThemedView>
     </ThemedView>

@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -15,17 +16,20 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { fetchTicket, submitPayment, TicketDetailDto } from "@/lib/events-api";
 import { setProofDraft } from "@/lib/payment-draft";
+import { PickedImage, uploadProofImage } from "@/data/image";
 
 export default function PaymentScreen() {
-  const { ticketId } = useLocalSearchParams<{ ticketId: string }>();
+  const { ticketId, reservationItemId } = useLocalSearchParams<{
+    ticketId: string;
+    reservationItemId: string;
+  }>();
   const router = useRouter();
 
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [proof, setProof] = useState<{ uri: string; name: string } | null>(
-    null,
-  );
+  const [proofImage, setProofImage] = useState<PickedImage | null>(null);
+  const [referenceNum, setReferenceNum] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -46,30 +50,49 @@ export default function PaymentScreen() {
     };
   }, [ticketId]);
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-    if (result.canceled) return;
+  async function pickProofImage() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.7,
+        base64: true,
+      });
+      if (result.canceled) return;
 
-    const asset = result.assets[0];
-    setProof({
-      uri: asset.uri,
-      name: asset.fileName ?? asset.uri.split("/").pop() ?? "proof.jpg",
-    });
-  };
-
-  const onSend = async () => {
-    if (!proof) {
-      Alert.alert("Proof required", "Please upload your proof of payment.");
-      return;
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert("Image unavailable", "Please choose another image.");
+        return;
+      }
+      setProofImage({
+        uri: asset.uri,
+        base64: asset.base64,
+        mimeType: asset.mimeType ?? "image/jpeg",
+        fileName: asset.fileName,
+      });
+    } catch (err) {
+      Alert.alert(
+        "Couldn't choose image",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
     }
-    setProofDraft(proof);
+  }
+
+  async function onSend() {
+    if (!proofImage || !referenceNum.trim() || !reservationItemId) return;
     try {
       setSubmitting(true);
-      // TODO Uncomment this when /api/payments is implemented
-      //await submitPayment(ticketId, proof.uri);
+      const uploaded = await uploadProofImage(proofImage);
+      await submitPayment(
+        reservationItemId,
+        referenceNum.trim(),
+        uploaded.publicUrl,
+      );
+      setProofDraft({
+        uri: proofImage.uri,
+        name: proofImage.fileName ?? "Payment proof",
+      });
       // replace, not push: this screen is removed from the history
       router.replace({
         pathname: "/payment-proof",
@@ -83,16 +106,18 @@ export default function PaymentScreen() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
   if (loading) return <ActivityIndicator style={styles.loading} />;
 
-  if (!ticket) {
+  if (!ticket || !reservationItemId) {
     return (
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ title: "Payment" }} />
         <ThemedText type="small" style={styles.center}>
-          {error ?? "Ticket not found."}
+          {!reservationItemId
+            ? "Reservation is missing. Please return to ticket selection and try again."
+            : (error ?? "Ticket not found.")}
         </ThemedText>
       </ThemedView>
     );
@@ -125,20 +150,23 @@ export default function PaymentScreen() {
 
         {/* Proof of payment */}
         <ThemedText style={styles.sectionTitle}>Proof of payment</ThemedText>
-        <Pressable onPress={pickImage}>
+        <Pressable onPress={pickProofImage}>
           <ThemedView
             type="backgroundElement"
             style={[styles.card, styles.proofRow]}
           >
-            {proof ? (
+            {proofImage ? (
               <>
-                <Image source={{ uri: proof.uri }} style={styles.thumb} />
+                <Image
+                  source={{ uri: proofImage.uri }}
+                  style={styles.thumb}
+                />
                 <ThemedText
                   type="small"
                   style={styles.proofName}
                   numberOfLines={1}
                 >
-                  {proof.name}
+                  {proofImage.fileName ?? "Payment proof"}
                 </ThemedText>
               </>
             ) : (
@@ -151,18 +179,39 @@ export default function PaymentScreen() {
         <ThemedView type="backgroundElement" style={styles.card}>
           <ThemedText style={styles.cardTitle}>Important notice</ThemedText>
           <ThemedText type="small">
-            {/* TODO: fill in your information here */}
-            Your notice goes here.
+            Complete your payment, then enter its reference number and attach
+            the payment screenshot.
           </ThemedText>
         </ThemedView>
+
+        <ThemedText style={styles.sectionTitle}>
+          Payment reference number
+        </ThemedText>
+        <TextInput
+          value={referenceNum}
+          onChangeText={setReferenceNum}
+          placeholder="Enter your transaction reference"
+          maxLength={255}
+          autoCapitalize="none"
+          style={styles.referenceInput}
+        />
 
         {/* Send payment (bottom of the scroll) */}
         <Pressable
           onPress={onSend}
-          disabled={submitting}
+          disabled={
+            submitting ||
+            !reservationItemId ||
+            !proofImage ||
+            !referenceNum.trim()
+          }
           style={({ pressed }) => [
             styles.sendButton,
-            (pressed || submitting) && { opacity: 0.7 },
+            (pressed ||
+              submitting ||
+              !reservationItemId ||
+              !proofImage ||
+              !referenceNum.trim()) && { opacity: 0.7 },
           ]}
         >
           {submitting ? (
@@ -197,6 +246,12 @@ const styles = StyleSheet.create({
   proofRow: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
   thumb: { width: 48, height: 48, borderRadius: Spacing.one },
   proofName: { flex: 1 },
+  referenceInput: {
+    padding: Spacing.two,
+    borderRadius: Spacing.one,
+    backgroundColor: "#fff",
+    color: "#111",
+  },
   sendButton: {
     marginTop: Spacing.three,
     paddingVertical: Spacing.three,
