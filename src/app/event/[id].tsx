@@ -12,7 +12,12 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
-import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
+import {
+  EventDetailDto,
+  EventTableDto,
+  EventTicketDto,
+  fetchEvent,
+} from "@/lib/events-api";
 import { Image } from "react-native";
 
 const formatDateTime = (iso: string) =>
@@ -49,6 +54,10 @@ const salesLabel = (t: EventTicketDto) => {
   if (t.salesEnd && parseDay(t.salesEnd) < today) return "Sales ended";
   if (t.salesEnd) return `On sale until ${formatDay(t.salesEnd)}`;
   return null;
+};
+
+const tableLabel = (t: EventTableDto) => {
+  return `Table ${t.label} - ${formatPrice(t.tablePrice)} - Capacity: ${t.capacity}`;
 };
 
 const isOnSale = (t: EventTicketDto) => {
@@ -107,6 +116,7 @@ export default function EventDetailScreen() {
   }
 
   const tickets = event.tickets ?? [];
+  const tables = event.tables ?? [];
 
   return (
     <ThemedView style={styles.container}>
@@ -194,10 +204,50 @@ export default function EventDetailScreen() {
         )}
 
         {/* Tables (future) */}
+
         <ThemedText type="default" style={styles.sectionTitle}>
           Tables
         </ThemedText>
-        <ThemedText type="small">Table reservations coming soon.</ThemedText>
+        {tables.length === 0 ? (
+          <ThemedText type="small">No tables available yet.</ThemedText>
+        ) : (
+          tables.map((table) => {
+            const label = tableLabel(table);
+            const canBuy = true;
+            return (
+              <ThemedView
+                key={table.tableId}
+                type="backgroundElement"
+                style={styles.card}
+              >
+                <ThemedText style={styles.cardTitle}>{table.label}</ThemedText>
+                <ThemedText type="small">
+                  {formatPrice(table.tablePrice)}
+                </ThemedText>
+                {label ? <ThemedText type="small">{label}</ThemedText> : null}
+                <Pressable
+                  disabled={!canBuy}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/tableBuy",
+                      params: {
+                        eventId: event.id,
+                        tableId: table.tableId,
+                      },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.buyButton,
+                    !canBuy && styles.buyButtonDisabled,
+                    pressed && styles.buyButtonPressed,
+                  ]}
+                >
+                  <ThemedText style={styles.buyButtonText}>Buy</ThemedText>
+                </Pressable>
+              </ThemedView>
+            );
+          })
+        )}
       </ScrollView>
     </ThemedView>
   );

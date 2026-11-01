@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Button, StyleSheet } from "react-native";
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
+import { ImagePickerField } from "@/components/event/image-picker-field";
+import { TableDraftList } from "@/components/event/table-draft-list";
 import { TicketDraftList } from "@/components/event/ticket-draft-list";
+
+import { TableModal } from "@/components/event/table-modal";
 import { TicketModal } from "@/components/event/ticket-modal";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { createEvent, deleteEvent } from "@/data/event";
-import { problemFor } from "@/data/problem";
-import { addTicket, NewTicket } from "@/data/ticket";
-import { ImagePickerField } from "@/components/event/image-picker-field";
 import {
   deleteEventImage,
   deleteHostQr,
@@ -19,6 +21,9 @@ import {
   uploadEventImage,
   uploadHostQr,
 } from "@/data/image";
+import { problemFor } from "@/data/problem";
+import { addTable, NewTable } from "@/data/table";
+import { addTicket, NewTicket } from "@/data/ticket";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -38,6 +43,8 @@ export function CreateEventForm({ onCreated }: Props) {
   const [status, setStatus] = useState("");
   const [map, setMap] = useState<PickedImage | null>(null);
   const [qrPayment, setQrPayment] = useState<PickedImage | null>(null);
+  const [tables, setTables] = useState<NewTable[]>([]);
+  const [tableModalVisible, setTableModalVisible] = useState(false);
 
   function resetForm() {
     const now = new Date();
@@ -120,12 +127,27 @@ export function CreateEventForm({ onCreated }: Props) {
         tickets.map((t) => addTicket({ eventId: created.id, ...t })),
       );
 
+      //call to submit tables
+      const tableResults = await Promise.allSettled(
+        tables.map((t) => addTable({ eventId: created.id, ...t })),
+      );
+
       if (results.some((r) => r.status === "rejected")) {
         // Every event needs a ticket, so undo the event and keep the form filled in
         await deleteEvent(created.id).catch(() => {});
         const cleanupSucceeded = await cleanupUploadedImages();
         setStatus(
           "Couldn't save the tickets, so the event wasn't created. Try again." +
+            (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
+        );
+        return;
+      }
+
+      if (tableResults.some((r) => r.status === "rejected")) {
+        // Tables are optional, so we don't delete the event if they fail
+        const cleanupSucceeded = await cleanupUploadedImages();
+        setStatus(
+          "Couldn't save the tables. The event was created, but try again." +
             (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
         );
         return;
@@ -174,11 +196,18 @@ export function CreateEventForm({ onCreated }: Props) {
           setTickets((prev) => prev.filter((_, idx) => idx !== i))
         }
       />
+      <TableDraftList
+        tables={tables}
+        onRemove={(i) =>
+          setTables((prev) => prev.filter((_, idx) => idx !== i))
+        }
+      />
 
       <Button
         title="+ Add ticket"
         onPress={() => setTicketModalVisible(true)}
       />
+      <Button title="+ Add table" onPress={() => setTableModalVisible(true)} />
       <Button title="Create test event" onPress={handleCreate} />
 
       {status ? <ThemedText>{status}</ThemedText> : null}
@@ -187,6 +216,12 @@ export function CreateEventForm({ onCreated }: Props) {
         visible={ticketModalVisible}
         onClose={() => setTicketModalVisible(false)}
         onSave={(ticket) => setTickets((prev) => [...prev, ticket])}
+      />
+
+      <TableModal
+        visible={tableModalVisible}
+        onClose={() => setTableModalVisible(false)}
+        onSave={(table) => setTables((prev) => [...prev, table])}
       />
 
       <ImagePickerField
