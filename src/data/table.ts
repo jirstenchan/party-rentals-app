@@ -30,7 +30,6 @@ export interface AddGuestsInput {
   guests: string[]; // The array of names collected from your input loop
 }
 
-
 // ---------------------------------------------------------------------
 // Shared request helper: adds the token, applies the timeout, and turns
 // error responses into thrown Errors carrying the server's message.
@@ -86,7 +85,6 @@ export const addTable = (input: AddTableInput) =>
     method: "POST",
     body: JSON.stringify(input),
   });
-
 
 export const createGuests = (input: AddGuestsInput) =>
   request<{ success: boolean }>("/api/table/guests", {
