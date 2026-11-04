@@ -16,8 +16,8 @@ Notifications.setNotificationHandler({
 });
 
 export async function registerForPushNotifications(accessToken: string) {
-  console.log("1. register called");
-  console.log("2. isDevice:", Device.isDevice);
+  // console.log("1. register called");
+  // console.log("2. isDevice:", Device.isDevice);
   // Push only works on a real phone, not a simulator
   if (!Device.isDevice) return;
 
