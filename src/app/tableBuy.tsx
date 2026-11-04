@@ -5,8 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
-  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,13 +35,12 @@ export default function BuyScreen() {
   const [inputName, setInputName] = useState("");
 
   const isFull = table !== null && guests.length >= table.capacity;
-
-  // text submission handler
-  const handleAddGuest = () => {
+  const handleAddGuest = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!inputName.trim() || isFull) return;
 
-    setGuests([...guests, inputName.trim()]);
-    setInputName(""); // Clear input field
+    setGuests([...guests, inputName]);
+    setInputName(""); // Clear input
   };
 
   useEffect(() => {
@@ -97,46 +94,6 @@ export default function BuyScreen() {
         <ThemedView type="backgroundElement" style={styles.card}>
           <ThemedText style={styles.cardTitle}>{table.label}</ThemedText>
           <ThemedText type="small">{formatPrice(table.tablePrice)}</ThemedText>
-
-          {/* Guest Collection UI Section */}
-          <View style={styles.guestSection}>
-            <ThemedText type="small" style={{ marginBottom: Spacing.one }}>
-              Table Capacity: {guests.length} / {table.capacity}
-            </ThemedText>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={inputName}
-                onChangeText={setInputName}
-                editable={!isFull} //disables input when table is full aka true
-                placeholder={isFull ? "Table is full" : "Enter guest name"}
-                placeholderTextColor="#888"
-                onSubmitEditing={handleAddGuest} // Submits when user clicks Done/Return on keyboard
-                returnKeyType="done"
-                style={[styles.input, isFull && styles.disabledInput]}
-              />
-              <Pressable
-                onPress={handleAddGuest}
-                disabled={isFull} // disables button when true
-                style={({ pressed }) => [
-                  styles.addButton,
-                  isFull && styles.disabledButton,
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <ThemedText style={styles.addButtonText}>Add</ThemedText>
-              </Pressable>
-            </View>
-
-            {/* Guest List Display */}
-            <View style={styles.listContainer}>
-              {guests.map((guest, idx) => (
-                <ThemedText key={idx} style={styles.listItem}>
-                  • {guest}
-                </ThemedText>
-              ))}
-            </View>
-          </View>
         </ThemedView>
       </ScrollView>
 
@@ -182,34 +139,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   payButtonText: { color: "#fff", fontWeight: "600" },
-
-  // New Native Layout Styles
-  guestSection: { marginTop: Spacing.two },
-  inputContainer: {
-    flexDirection: "row",
-    gap: Spacing.one,
-    marginTop: Spacing.one,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: Spacing.one,
-    paddingHorizontal: Spacing.two,
-    height: 40,
-    color: "#000",
-    backgroundColor: "#fff",
-  },
-  disabledInput: { backgroundColor: "#f0f0f0", borderColor: "#e0e0e0" },
-  addButton: {
-    backgroundColor: "#208AEF",
-    paddingHorizontal: Spacing.three,
-    justifyContent: "center",
-    borderRadius: Spacing.one,
-    height: 40,
-  },
-  disabledButton: { backgroundColor: "#b0d4fa" },
-  addButtonText: { color: "#fff", fontWeight: "600" },
-  listContainer: { marginTop: Spacing.two, gap: 4 },
-  listItem: { fontSize: 14 },
 });

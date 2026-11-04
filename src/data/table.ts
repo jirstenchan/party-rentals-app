@@ -25,6 +25,12 @@ export interface AddTableInput {
   capacity: number;
 }
 
+export interface AddGuestsInput {
+  tableId: string;
+  guests: string[]; // The array of names collected from your input loop
+}
+
+
 // ---------------------------------------------------------------------
 // Shared request helper: adds the token, applies the timeout, and turns
 // error responses into thrown Errors carrying the server's message.
@@ -67,10 +73,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 // ---------------------------------------------------------------------
-// TICKET API
+// TABLE API
 // ---------------------------------------------------------------------
 
-// A ticket drafted on the form before its event exists
+// A table drafted on the form before its event exists
 export type NewTable = Omit<AddTableInput, "eventId">;
 
 export const listTicket = () => request<Event[]>("/api/ticket");
@@ -78,5 +84,12 @@ export const listTicket = () => request<Event[]>("/api/ticket");
 export const addTable = (input: AddTableInput) =>
   request<EventTable>("/api/table", {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+
+
+export const createGuests = (input: AddGuestsInput) =>
+  request<{ success: boolean }>("/api/table/guests", {
+    method: "POST", // Or "PUT" depending on your API structure
     body: JSON.stringify(input),
   });

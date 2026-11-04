@@ -1,3 +1,4 @@
+import { AddGuestsInput } from "@/data/table";
 import { supabase } from "@/lib/supabase";
 import { File } from "expo-file-system";
 
