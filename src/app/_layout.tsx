@@ -1,11 +1,10 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { ActivityIndicator, useColorScheme } from "react-native";
 import { SignIn } from "@/components/sign-in";
 import { useSession } from "@/hooks/use-session";
-import { useEffect } from "react";
 import { registerForPushNotifications } from "@/lib/notifications";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { ActivityIndicator, useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 SplashScreen.preventAutoHideAsync();
@@ -26,8 +25,14 @@ export default function RootLayout() {
       {session === null && <SignIn />}
       {session && (
         <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-1" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-2" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-3" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="event" options={{ headerShown: false }} />
+          <Stack.Screen name="home" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
         </Stack>
       )}
     </ThemeProvider>
