@@ -12,7 +12,7 @@ import { useProfile } from "@/hooks/use-profile";
 const PURPLE = BrandColors.purple;
 const PURPLE_TINT = "#F1EDFC";
 
-// Quick actions row (UI only for now)
+// Quick actions row (UI)
 const QUICK_ACTIONS = [
   { id: "tickets", label: "My Tickets", icon: "ticket-outline" },
   { id: "events", label: "My Events", icon: "calendar-outline" },
