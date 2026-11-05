@@ -5,21 +5,21 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
+import { ImagePickerField } from "@/components/event/image-picker-field";
 import { TicketDraftList } from "@/components/event/ticket-draft-list";
 import { TicketModal } from "@/components/event/ticket-modal";
 import { createEvent, deleteEvent } from "@/data/event";
-import { problemFor } from "@/data/problem";
-import { addTicket, NewTicket } from "@/data/ticket";
-import { ImagePickerField } from "@/components/event/image-picker-field";
 import {
+  deleteEventGraphic,
   deleteEventImage,
   deleteHostQr,
-  deleteEventGraphic,
   PickedImage,
+  uploadEventGraphic,
   uploadEventImage,
   uploadHostQr,
-  uploadEventGraphic,
 } from "@/data/image";
+import { problemFor } from "@/data/problem";
+import { addTicket, NewTicket } from "@/data/ticket";
 
 const PURPLE = "#6B2CF5";
 const HOUR = 60 * 60 * 1000;
@@ -344,7 +344,7 @@ export function CreateEventForm({ onCreated }: Props) {
       )}
       {/* QR Payment */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Venue Map</Text>
+        <Text style={styles.sectionTitle}>QR Payment</Text>
         <ImagePickerField
           value={qrPayment}
           onChange={setQrPayment}
