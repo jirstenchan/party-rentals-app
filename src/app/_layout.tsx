@@ -33,6 +33,7 @@ export default function RootLayout() {
           <Stack.Screen name="event" options={{ headerShown: false }} />
           <Stack.Screen name="home" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
         </Stack>
       )}
     </ThemeProvider>
