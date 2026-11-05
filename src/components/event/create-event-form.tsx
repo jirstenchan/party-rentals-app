@@ -9,7 +9,17 @@ import { TicketDraftList } from "@/components/event/ticket-draft-list";
 import { TicketModal } from "@/components/event/ticket-modal";
 import { createEvent, deleteEvent } from "@/data/event";
 import { problemFor } from "@/data/problem";
-import { addTicket, type NewTicket } from "@/data/ticket";
+import { addTicket, NewTicket } from "@/data/ticket";
+import { ImagePickerField } from "@/components/event/image-picker-field";
+import {
+  deleteEventImage,
+  deleteHostQr,
+  deleteEventGraphic,
+  PickedImage,
+  uploadEventImage,
+  uploadHostQr,
+  uploadEventGraphic,
+} from "@/data/image";
 
 const PURPLE = "#6B2CF5";
 const HOUR = 60 * 60 * 1000;
@@ -29,6 +39,10 @@ export function CreateEventForm({ onCreated }: Props) {
   const [tickets, setTickets] = useState<NewTicket[]>([]);
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [status, setStatus] = useState("");
+  const [map, setMap] = useState<PickedImage | null>(null);
+  const [qrPayment, setQrPayment] = useState<PickedImage | null>(null);
+  const [eventGraphicImage, setEventGraphicImage] =
+    useState<PickedImage | null>(null);
 
   function resetForm() {
     const now = new Date();
@@ -40,6 +54,9 @@ export function CreateEventForm({ onCreated }: Props) {
     setStartTime(now);
     setEndTime(new Date(now.getTime() + HOUR));
     setTickets([]);
+    setMap(null);
+    setQrPayment(null);
+    setEventGraphicImage(null);
   }
 
   async function handleCreate() {
@@ -70,8 +87,42 @@ export function CreateEventForm({ onCreated }: Props) {
       return;
     }
 
+    let uploadedMapPath: string | null = null;
+    let uploadedQrPath: string | null = null;
+    let uploadedGraphicImagePath: string | null = null;
+
+    async function cleanupUploadedImages() {
+      const results = await Promise.allSettled([
+        ...(uploadedMapPath ? [deleteEventImage(uploadedMapPath)] : []),
+        ...(uploadedQrPath ? [deleteHostQr(uploadedQrPath)] : []),
+        ...(uploadedGraphicImagePath
+          ? [deleteEventGraphic(uploadedGraphicImagePath)]
+          : []),
+      ]);
+      return results.every((result) => result.status === "fulfilled");
+    }
+
     try {
       setStatus("Creating...");
+
+      let mapUrl: string | null = null;
+      let paymentQrUrl: string | null = null;
+      let eventImageUrl: string | null = null;
+      if (map) {
+        const uploaded = await uploadEventImage(map);
+        uploadedMapPath = uploaded.path;
+        mapUrl = uploaded.publicUrl;
+      }
+      if (qrPayment) {
+        const uploaded = await uploadHostQr(qrPayment);
+        uploadedQrPath = uploaded.path;
+        paymentQrUrl = uploaded.publicUrl;
+      }
+      if (eventGraphicImage) {
+        const uploaded = await uploadEventGraphic(eventGraphicImage);
+        uploadedGraphicImagePath = uploaded.path;
+        eventImageUrl = uploaded.publicUrl;
+      }
 
       const created = await createEvent({
         name: name.trim(),
@@ -81,6 +132,9 @@ export function CreateEventForm({ onCreated }: Props) {
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         status: "published",
+        mapUrl,
+        paymentQrUrl,
+        eventImageUrl,
       });
 
       const results = await Promise.allSettled(
@@ -95,9 +149,10 @@ export function CreateEventForm({ onCreated }: Props) {
       if (results.some((result) => result.status === "rejected")) {
         // Preserve your classmate's rollback behavior.
         await deleteEvent(created.id).catch(() => {});
-
+        const cleanupSucceeded = await cleanupUploadedImages();
         setStatus(
-          "Couldn't save the tickets, so the event wasn't created. Try again.",
+          "Couldn't save the tickets, so the event wasn't created. Try again." +
+            (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
         );
         return;
       }
@@ -106,7 +161,12 @@ export function CreateEventForm({ onCreated }: Props) {
       resetForm();
       await onCreated();
     } catch (e) {
-      setStatus("Create failed: " + problemFor(e));
+      const cleanupSucceeded = await cleanupUploadedImages();
+      setStatus(
+        "Create failed: " +
+          problemFor(e) +
+          (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
+      );
     }
   }
 
@@ -261,13 +321,50 @@ export function CreateEventForm({ onCreated }: Props) {
       {/* Venue map placeholder */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Venue Map</Text>
-        <Text style={styles.sectionAction}>+ Add Map</Text>
+        <ImagePickerField
+          value={map}
+          onChange={setMap}
+          text="+ Add Venue Map"
+          changeText="Edit"
+          showPreview={false}
+        />
       </View>
 
-      <View style={styles.mapPlaceholder}>
-        <Ionicons name="image-outline" size={72} color="#85858F" />
-        <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
+      {map ? (
+        <Image
+          source={{ uri: map.uri }}
+          style={styles.mapImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.mapPlaceholder}>
+          <Ionicons name="image-outline" size={72} color="#85858F" />
+          <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
+        </View>
+      )}
+      {/* QR Payment */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Venue Map</Text>
+        <ImagePickerField
+          value={qrPayment}
+          onChange={setQrPayment}
+          text={"+ Add QR payment"}
+          aspect={[1, 1]}
+        />
       </View>
+
+      {qrPayment ? (
+        <Image
+          source={{ uri: qrPayment.uri }}
+          style={styles.mapImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.mapPlaceholder}>
+          <Ionicons name="image-outline" size={72} color="#85858F" />
+          <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
+        </View>
+      )}
 
       {/* Real ticket drafts */}
       <View style={styles.sectionHeader}>
@@ -339,6 +436,12 @@ export function CreateEventForm({ onCreated }: Props) {
           setConfirmVisible(false);
           void handleCreate();
         }}
+      />
+
+      <ImagePickerField
+        value={eventGraphicImage}
+        onChange={setEventGraphicImage}
+        text={"+ Add Event Image"}
       />
     </View>
   );
@@ -530,6 +633,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  mapImage: {
+    width: "100%",
+    aspectRatio: 16 / 9, // match your aspect prop / placeholder height
+    borderRadius: 8,
   },
 });
 
