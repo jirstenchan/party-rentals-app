@@ -191,9 +191,28 @@ export function CreateEventForm({ onCreated }: Props) {
       {/* Photo and title */}
       <View style={styles.titleRow}>
         {/* TODO: photo upload is not implemented. */}
-        <View style={styles.coverPhoto}>
+        {/* <View style={styles.coverPhoto}>
           <Ionicons name="image-outline" size={32} color="#8A8A93" />
-        </View>
+        </View> */}
+
+        <ImagePickerField
+          value={eventGraphicImage}
+          onChange={setEventGraphicImage}
+          text=""
+          showPreview={false}
+        >
+          {eventGraphicImage ? (
+            <Image
+              source={{ uri: eventGraphicImage.uri }}
+              style={styles.eventImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.coverPhoto}>
+              <Ionicons name="image-outline" size={32} color="#8A8A93" />
+            </View>
+          )}
+        </ImagePickerField>
 
         <FormInput
           label="Event Title"
@@ -330,41 +349,58 @@ export function CreateEventForm({ onCreated }: Props) {
         />
       </View>
 
-      {map ? (
-        <Image
-          source={{ uri: map.uri }}
-          style={styles.mapImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={styles.mapPlaceholder}>
-          <Ionicons name="image-outline" size={72} color="#85858F" />
-          <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
-        </View>
-      )}
+      <ImagePickerField
+        value={map}
+        onChange={setMap}
+        text="Upload Venue Map"
+        showPreview={false}
+      >
+        {map ? (
+          <Image
+            source={{ uri: map.uri }}
+            style={styles.mapImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Ionicons name="image-outline" size={72} color="#85858F" />
+            <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
+          </View>
+        )}
+      </ImagePickerField>
       {/* QR Payment */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Venue Map</Text>
+        <Text style={styles.sectionTitle}>QR Payment</Text>
         <ImagePickerField
           value={qrPayment}
           onChange={setQrPayment}
           text={"+ Add QR payment"}
           aspect={[1, 1]}
+          changeText="Edit"
+          showPreview={false}
         />
       </View>
 
-      {qrPayment ? (
-        <Image
-          source={{ uri: qrPayment.uri }}
-          style={styles.mapImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={styles.mapPlaceholder}>
-          <Ionicons name="image-outline" size={72} color="#85858F" />
-          <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
-        </View>
-      )}
+      <ImagePickerField
+        value={qrPayment}
+        onChange={setQrPayment}
+        text="Upload QR Payment"
+        showPreview={false}
+        aspect={[1, 1]}
+      >
+        {qrPayment ? (
+          <Image
+            source={{ uri: qrPayment.uri }}
+            style={styles.qrImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Ionicons name="image-outline" size={72} color="#85858F" />
+            <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
+          </View>
+        )}
+      </ImagePickerField>
 
       {/* Real ticket drafts */}
       <View style={styles.sectionHeader}>
@@ -447,6 +483,8 @@ export function CreateEventForm({ onCreated }: Props) {
   );
 }
 
+const COVER_PHOTO_SIZE = 96;
+
 const styles = StyleSheet.create({
   form: {
     gap: 14,
@@ -463,8 +501,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   coverPhoto: {
-    width: 96,
-    height: 96,
+    width: COVER_PHOTO_SIZE,
+    height: COVER_PHOTO_SIZE,
     borderRadius: 14,
     backgroundColor: "#E6E3F5",
     alignItems: "center",
@@ -637,6 +675,17 @@ const styles = StyleSheet.create({
   mapImage: {
     width: "100%",
     aspectRatio: 16 / 9, // match your aspect prop / placeholder height
+    borderRadius: 8,
+  },
+  qrImage: {
+    width: "100%",
+    aspectRatio: 1 / 1, // match your aspect prop / placeholder height
+    borderRadius: 8,
+  },
+  eventImage: {
+    width: COVER_PHOTO_SIZE,
+    height: COVER_PHOTO_SIZE,
+    aspectRatio: 1, // match your aspect prop / placeholder height
     borderRadius: 8,
   },
 });
