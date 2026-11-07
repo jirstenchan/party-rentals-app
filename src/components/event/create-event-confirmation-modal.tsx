@@ -1,5 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import {
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { BrandColors } from "@/constants/theme";
 
@@ -14,16 +22,69 @@ export function ConfirmCreateModal({
   onCancel,
   onConfirm,
 }: ConfirmCreateModalProps) {
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  const [mounted, setMounted] = useState(visible);
+
+  function playClose() {
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
+  }
+
+  useEffect(() => {
+    if (visible) {
+      if (mounted) {
+        playPop(); // reopened while the close animation was still running
+      } else {
+        setMounted(true); // fresh open, onShow will play the pop
+      }
+    } else if (mounted) {
+      playClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  function playPop() {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 6, // lower = bouncier
+        tension: 90, // higher = faster
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }
   return (
     <Modal
       transparent
       animationType="fade"
-      visible={visible}
+      visible={mounted}
       statusBarTranslucent
+      onShow={playPop}
       onRequestClose={onCancel}
     >
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        <Animated.View
+          style={[styles.sheet, { opacity, transform: [{ scale }] }]}
+        >
           {/* Document icon with a check badge */}
           <View style={styles.iconWrapper}>
             <View style={styles.iconCircle}>
@@ -73,7 +134,7 @@ export function ConfirmCreateModal({
               </Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
