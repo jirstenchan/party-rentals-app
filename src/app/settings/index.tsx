@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,11 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoutConfirmationModal } from "@/components/settings/logout-confirmation-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Spacing } from "@/constants/theme";
+import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-
-const PURPLE = BrandColors.purple;
-const PURPLE_TINT = "#F4EFFD";
 
 // Sections and rows (UI only for now)
 const SECTIONS = [
@@ -144,6 +141,9 @@ export default function SettingsScreen() {
   );
 }
 
+const PURPLE = BrandColors.purple;
+const PURPLE_TINT = "#F4EFFD";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     height: 64,
-    borderRadius: 20,
+    borderRadius: Radius.small,
     backgroundColor: PURPLE_TINT,
   },
   logOutPressed: {

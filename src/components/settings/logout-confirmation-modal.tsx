@@ -1,9 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { supabase } from "@/lib/supabase";
+import { Radius } from "@/constants/theme";
 
 type Props = {
   visible: boolean;
@@ -13,6 +22,56 @@ type Props = {
 const RED = "#FF292F";
 
 export function LogoutConfirmationModal({ visible, onCancel }: Props) {
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  const [mounted, setMounted] = useState(visible);
+
+  function playClose() {
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
+  }
+
+  useEffect(() => {
+    if (visible) {
+      if (mounted) {
+        playPop(); // reopened while the close animation was still running
+      } else {
+        setMounted(true); // fresh open, onShow will play the pop
+      }
+    } else if (mounted) {
+      playClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  function playPop() {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 6, // lower = bouncier
+        tension: 90, // higher = faster
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutInProgress = useRef(false);
@@ -51,12 +110,16 @@ export function LogoutConfirmationModal({ visible, onCancel }: Props) {
     <Modal
       transparent
       animationType="fade"
-      visible={visible}
+      visible={mounted}
+      onShow={playPop}
       statusBarTranslucent
       onRequestClose={handleCancel}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.sheet} accessibilityViewIsModal>
+      <Animated.View style={[styles.backdrop, { opacity }]}>
+        <Animated.View
+          style={[styles.sheet, { transform: [{ scale }] }]}
+          accessibilityViewIsModal
+        >
           <View style={styles.iconCircle}>
             <Ionicons name="log-in-outline" size={50} color={RED} />
           </View>
@@ -105,8 +168,8 @@ export function LogoutConfirmationModal({ visible, onCancel }: Props) {
               </Text>
             </Pressable>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -124,7 +187,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 32,
+    borderRadius: Radius.large,
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
