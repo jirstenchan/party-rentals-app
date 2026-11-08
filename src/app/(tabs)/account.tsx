@@ -1,13 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Image, Pressable, StyleSheet, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EventList } from "@/components/event/event-list";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BottomTabInset, BrandColors, Spacing } from "@/constants/theme";
+import {
+  BottomTabInset,
+  BrandColors,
+  Spacing,
+  Radius,
+} from "@/constants/theme";
 import { useProfile } from "@/hooks/use-profile";
+import { fetchEvents } from "@/lib/events-api";
+import { useCallback, useState } from "react";
+import { fetchMyReservations } from "@/lib/reservation-api";
 
 const PURPLE = BrandColors.purple;
 const PURPLE_TINT = "#F1EDFC";
@@ -23,6 +31,58 @@ export default function AccountScreen() {
   const profile = useProfile();
   const router = useRouter();
 
+  const [eventCount, setEventCount] = useState<number | null>(null);
+  const [reservationCount, setReservationCount] = useState<number | null>(null);
+
+  //Getting the total number of events created by the user logged in
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      fetchEvents("mine")
+        .then((events) => {
+          if (active) setEventCount(events.length);
+        })
+        .catch(() => {
+          if (active) setEventCount(null);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      Promise.allSettled([fetchEvents("mine"), fetchMyReservations()]).then(
+        ([events, reservations]) => {
+          if (!active) return;
+          setEventCount(
+            events.status === "fulfilled" ? events.value.length : null,
+          );
+          setReservationCount(
+            reservations.status === "fulfilled"
+              ? new Set(
+                  reservations.value
+                    .filter((r) => r.reservationStatus !== "Denied")
+                    .map((r) => r.reservationId),
+                ).size
+              : null,
+          );
+        },
+      );
+
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const name = profile?.host_name || profile?.name || "User";
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -31,7 +91,7 @@ export default function AccountScreen() {
           {/* Header */}
           <View style={styles.header}>
             <ThemedText style={styles.headerTitle}>PROFILE</ThemedText>
-            {/* TODO: hook up the settings screen */}
+            {/* Hook up the settings screen */}
             <Pressable
               onPress={() => router.push("/settings")}
               hitSlop={12}
@@ -44,14 +104,24 @@ export default function AccountScreen() {
 
           {/* Avatar + name */}
           <View style={styles.userRow}>
-            {/* TODO: show the user's photo here once the profile has one */}
+            {/* Show the user's photo here once the profile has one */}
             <View style={styles.avatar}>
-              <Ionicons name="person" size={48} color={PURPLE} />
+              {profile?.avatar_url ? (
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={styles.avatarImage}
+                  accessibilityLabel={name}
+                />
+              ) : (
+                <Text style={styles.avatarLetter}>
+                  {name.charAt(0).toUpperCase()}
+                </Text>
+              )}
             </View>
 
             <View style={styles.userInfo}>
-              <ThemedText style={styles.name} numberOfLines={1}>
-                {profile?.email}
+              <ThemedText style={styles.name} numberOfLines={2}>
+                {name}
               </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.handle}>
                 Role: {profile?.role}
@@ -73,13 +143,17 @@ export default function AccountScreen() {
           {/* TODO: replace the placeholder numbers with real counts */}
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <ThemedText style={styles.statNumber}>12</ThemedText>
+              <ThemedText style={styles.statNumber}>
+                {eventCount ?? "–"}
+              </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.statLabel}>
                 Events
               </ThemedText>
             </View>
             <View style={styles.stat}>
-              <ThemedText style={styles.statNumber}>8</ThemedText>
+              <ThemedText style={styles.statNumber}>
+                {reservationCount ?? "–"}
+              </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.statLabel}>
                 Reservations
               </ThemedText>
@@ -119,7 +193,7 @@ export default function AccountScreen() {
 
           {/* History header */}
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>History</ThemedText>
+            <ThemedText style={styles.sectionTitle}>My Events</ThemedText>
             {/* TODO: hook up the full history screen */}
             <Pressable style={styles.seeAll} hitSlop={8}>
               <ThemedText style={styles.seeAllText}>See All</ThemedText>
@@ -170,14 +244,24 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   avatar: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
+    width: 80,
+    height: 80,
+    borderRadius: Radius.full,
     borderWidth: 3,
     borderColor: PURPLE,
     backgroundColor: PURPLE_TINT,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden", // clips the image to the circle
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarLetter: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6d28d9",
   },
   userInfo: {
     flex: 1,
@@ -259,7 +343,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     height: 44,
-    borderRadius: 16,
+    borderRadius: Radius.small,
     backgroundColor: PURPLE_TINT,
     marginTop: Spacing.two,
   },
