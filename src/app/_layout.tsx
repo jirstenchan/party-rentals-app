@@ -1,17 +1,3 @@
-// import { Stack } from "expo-router";
-
-// export default function RootLayout() {
-//   return (
-//     <Stack screenOptions={{ headerShown: false }}>
-//       <Stack.Screen name="index" />
-//       <Stack.Screen name="loading-preview" />
-//       <Stack.Screen name="onboarding-1" />
-//       <Stack.Screen name="onboarding-2" />
-//       <Stack.Screen name="onboarding-3" />
-//     </Stack>
-//   );
-// }
-
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -22,7 +8,6 @@ import { useEffect } from "react";
 import { registerForPushNotifications } from "@/lib/notifications";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
-
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -43,6 +28,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="event" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
         </Stack>
       )}
     </ThemeProvider>
