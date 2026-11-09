@@ -218,7 +218,7 @@ export default function EventDetailScreen() {
         {tables.length === 0 ? (
           <ThemedText type="small">No tables available yet.</ThemedText>
         ) : (
-          tables.map((table) => {
+          tables.map((table: EventTableDto) => {
             const label = tableLabel(table);
             const canBuy = true;
             return (

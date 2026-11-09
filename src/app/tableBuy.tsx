@@ -50,7 +50,9 @@ export default function BuyScreen() {
         const e = await fetchEvent(eventId);
         if (cancelled) return;
         setEvent(e);
-        setTable(e.tables?.find((t) => t.tableId === tableId) ?? null);
+        const tables = (e as EventDetailDto & { tables?: EventTableDto[] })
+          .tables;
+        setTable(tables?.find((t) => t.tableId === tableId) ?? null);
       } catch (err) {
         if (!cancelled)
           setError(
