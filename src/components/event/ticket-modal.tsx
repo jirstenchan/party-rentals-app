@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import {
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 
 import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
@@ -31,6 +39,43 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [mounted, setMounted] = useState(visible);
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  function playPop() {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 6,
+        tension: 90,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }
+
+  function playClose() {
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
+  }
+
   useEffect(() => {
     if (visible) {
       setName("");
@@ -39,7 +84,16 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
       setSalesStart(new Date());
       setSalesEnd(new Date(Date.now() + WEEK));
       setError("");
+
+      if (mounted) {
+        playPop(); // reopened while the close animation was still running
+      } else {
+        setMounted(true); // fresh open, onShow plays the pop
+      }
+    } else if (mounted) {
+      playClose();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   async function handleSave() {
@@ -82,13 +136,16 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
+      visible={mounted}
+      animationType="fade"
       transparent
+      onShow={playPop}
       onRequestClose={onClose}
     >
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <Animated.View
+          style={[styles.card, { opacity, transform: [{ scale }] }]}
+        >
           <Text style={styles.title}>Add ticket</Text>
 
           <Text style={styles.description}>
@@ -153,7 +210,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
           >
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

@@ -1,14 +1,25 @@
+import { ConfirmCreateModal } from "@/components/event/create-event-confirmation-modal";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
+import { ImagePickerField } from "@/components/event/image-picker-field";
 import { TicketDraftList } from "@/components/event/ticket-draft-list";
 import { TicketModal } from "@/components/event/ticket-modal";
 import { createEvent, deleteEvent } from "@/data/event";
+import {
+  deleteEventGraphic,
+  deleteEventImage,
+  deleteHostQr,
+  PickedImage,
+  uploadEventGraphic,
+  uploadEventImage,
+  uploadHostQr,
+} from "@/data/image";
 import { problemFor } from "@/data/problem";
-import { addTicket, type NewTicket } from "@/data/ticket";
+import { addTicket, NewTicket } from "@/data/ticket";
 
 const PURPLE = "#6B2CF5";
 const HOUR = 60 * 60 * 1000;
@@ -18,6 +29,7 @@ type Props = {
 };
 
 export function CreateEventForm({ onCreated }: Props) {
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -27,6 +39,10 @@ export function CreateEventForm({ onCreated }: Props) {
   const [tickets, setTickets] = useState<NewTicket[]>([]);
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [status, setStatus] = useState("");
+  const [map, setMap] = useState<PickedImage | null>(null);
+  const [qrPayment, setQrPayment] = useState<PickedImage | null>(null);
+  const [eventGraphicImage, setEventGraphicImage] =
+    useState<PickedImage | null>(null);
 
   function resetForm() {
     const now = new Date();
@@ -38,6 +54,9 @@ export function CreateEventForm({ onCreated }: Props) {
     setStartTime(now);
     setEndTime(new Date(now.getTime() + HOUR));
     setTickets([]);
+    setMap(null);
+    setQrPayment(null);
+    setEventGraphicImage(null);
   }
 
   async function handleCreate() {
@@ -68,8 +87,42 @@ export function CreateEventForm({ onCreated }: Props) {
       return;
     }
 
+    let uploadedMapPath: string | null = null;
+    let uploadedQrPath: string | null = null;
+    let uploadedGraphicImagePath: string | null = null;
+
+    async function cleanupUploadedImages() {
+      const results = await Promise.allSettled([
+        ...(uploadedMapPath ? [deleteEventImage(uploadedMapPath)] : []),
+        ...(uploadedQrPath ? [deleteHostQr(uploadedQrPath)] : []),
+        ...(uploadedGraphicImagePath
+          ? [deleteEventGraphic(uploadedGraphicImagePath)]
+          : []),
+      ]);
+      return results.every((result) => result.status === "fulfilled");
+    }
+
     try {
       setStatus("Creating...");
+
+      let mapUrl: string | null = null;
+      let paymentQrUrl: string | null = null;
+      let eventImageUrl: string | null = null;
+      if (map) {
+        const uploaded = await uploadEventImage(map);
+        uploadedMapPath = uploaded.path;
+        mapUrl = uploaded.publicUrl;
+      }
+      if (qrPayment) {
+        const uploaded = await uploadHostQr(qrPayment);
+        uploadedQrPath = uploaded.path;
+        paymentQrUrl = uploaded.publicUrl;
+      }
+      if (eventGraphicImage) {
+        const uploaded = await uploadEventGraphic(eventGraphicImage);
+        uploadedGraphicImagePath = uploaded.path;
+        eventImageUrl = uploaded.publicUrl;
+      }
 
       const created = await createEvent({
         name: name.trim(),
@@ -79,6 +132,9 @@ export function CreateEventForm({ onCreated }: Props) {
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         status: "published",
+        mapUrl,
+        paymentQrUrl,
+        eventImageUrl,
       });
 
       const results = await Promise.allSettled(
@@ -93,9 +149,10 @@ export function CreateEventForm({ onCreated }: Props) {
       if (results.some((result) => result.status === "rejected")) {
         // Preserve your classmate's rollback behavior.
         await deleteEvent(created.id).catch(() => {});
-
+        const cleanupSucceeded = await cleanupUploadedImages();
         setStatus(
-          "Couldn't save the tickets, so the event wasn't created. Try again.",
+          "Couldn't save the tickets, so the event wasn't created. Try again." +
+            (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
         );
         return;
       }
@@ -104,7 +161,12 @@ export function CreateEventForm({ onCreated }: Props) {
       resetForm();
       await onCreated();
     } catch (e) {
-      setStatus("Create failed: " + problemFor(e));
+      const cleanupSucceeded = await cleanupUploadedImages();
+      setStatus(
+        "Create failed: " +
+          problemFor(e) +
+          (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
+      );
     }
   }
 
@@ -128,10 +190,24 @@ export function CreateEventForm({ onCreated }: Props) {
     <View style={styles.form}>
       {/* Photo and title */}
       <View style={styles.titleRow}>
-        {/* TODO: photo upload is not implemented. */}
-        <View style={styles.coverPhoto}>
-          <Ionicons name="image-outline" size={32} color="#8A8A93" />
-        </View>
+        <ImagePickerField
+          value={eventGraphicImage}
+          onChange={setEventGraphicImage}
+          text=""
+          showPreview={false}
+        >
+          {eventGraphicImage ? (
+            <Image
+              source={{ uri: eventGraphicImage.uri }}
+              style={styles.eventImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.coverPhoto}>
+              <Ionicons name="image-outline" size={32} color="#8A8A93" />
+            </View>
+          )}
+        </ImagePickerField>
 
         <FormInput
           label="Event Title"
@@ -259,13 +335,67 @@ export function CreateEventForm({ onCreated }: Props) {
       {/* Venue map placeholder */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Venue Map</Text>
-        <Text style={styles.sectionAction}>+ Add Map</Text>
+        <ImagePickerField
+          value={map}
+          onChange={setMap}
+          text="+ Add Venue Map"
+          changeText="Edit"
+          showPreview={false}
+        />
       </View>
 
-      <View style={styles.mapPlaceholder}>
-        <Ionicons name="image-outline" size={72} color="#85858F" />
-        <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
+      <ImagePickerField
+        value={map}
+        onChange={setMap}
+        text="Upload Venue Map"
+        showPreview={false}
+      >
+        {map ? (
+          <Image
+            source={{ uri: map.uri }}
+            style={styles.mapImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Ionicons name="image-outline" size={72} color="#85858F" />
+            <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
+          </View>
+        )}
+      </ImagePickerField>
+      {/* QR Payment */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>QR Payment</Text>
+        <ImagePickerField
+          value={qrPayment}
+          onChange={setQrPayment}
+          text={"+ Add QR payment"}
+          aspect={[1, 1]}
+          changeText="Edit"
+          showPreview={false}
+        />
       </View>
+
+      <ImagePickerField
+        value={qrPayment}
+        onChange={setQrPayment}
+        text="Upload QR Payment"
+        showPreview={false}
+        aspect={[1, 1]}
+      >
+        {qrPayment ? (
+          <Image
+            source={{ uri: qrPayment.uri }}
+            style={styles.qrImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Ionicons name="image-outline" size={72} color="#85858F" />
+            <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
+          </View>
+        )}
+      </ImagePickerField>
 
       {/* Real ticket drafts */}
       <View style={styles.sectionHeader}>
@@ -315,7 +445,7 @@ export function CreateEventForm({ onCreated }: Props) {
       ) : null}
 
       <Pressable
-        onPress={handleCreate}
+        onPress={() => setConfirmVisible(true)}
         style={({ pressed }) => [
           styles.createButton,
           pressed && styles.createButtonPressed,
@@ -329,9 +459,20 @@ export function CreateEventForm({ onCreated }: Props) {
         onClose={() => setTicketModalVisible(false)}
         onSave={(ticket) => setTickets((previous) => [...previous, ticket])}
       />
+
+      <ConfirmCreateModal
+        visible={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={() => {
+          setConfirmVisible(false);
+          void handleCreate();
+        }}
+      />
     </View>
   );
 }
+
+const COVER_PHOTO_SIZE = 96;
 
 const styles = StyleSheet.create({
   form: {
@@ -349,8 +490,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   coverPhoto: {
-    width: 96,
-    height: 96,
+    width: COVER_PHOTO_SIZE,
+    height: COVER_PHOTO_SIZE,
     borderRadius: 14,
     backgroundColor: "#E6E3F5",
     alignItems: "center",
@@ -519,6 +660,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  mapImage: {
+    width: "100%",
+    aspectRatio: 16 / 9, // match your aspect prop / placeholder height
+    borderRadius: 8,
+  },
+  qrImage: {
+    width: "100%",
+    aspectRatio: 1 / 1, // match your aspect prop / placeholder height
+    borderRadius: 8,
+  },
+  eventImage: {
+    width: COVER_PHOTO_SIZE,
+    height: COVER_PHOTO_SIZE,
+    aspectRatio: 1, // match your aspect prop / placeholder height
+    borderRadius: 8,
   },
 });
 
