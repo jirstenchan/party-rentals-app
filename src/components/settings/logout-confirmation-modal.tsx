@@ -94,7 +94,7 @@ export function LogoutConfirmationModal({ visible, onCancel }: Props) {
       if (error) throw error;
 
       onCancel();
-      router.replace("/login");
+      //router.replace("/login");
     } catch (error) {
       Alert.alert(
         "Unable to log out",
