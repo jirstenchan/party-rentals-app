@@ -62,7 +62,17 @@ export const BrandColors = {
   pesoBadgeText = fontSize: 14,
   notFound = fontSize: 12,
 
+  // Create Event UI (create.tsx)
 
+  // Create Event UI (create-event-form.tsx)
+
+  // Create Event UI (image-picker-field.tsx)
+
+  // Create Event UI (form-input.tsx)
+
+  // Create Modal UI (create-event-confirmation-modal.tsx)
+  
+  // Account (Profile) UI
 
 */
 export const Fonts = Platform.select({

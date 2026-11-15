@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Modal,
@@ -149,37 +149,37 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
   },
   sheet: {
-    width: "100%",
-    maxWidth: 400,
+    width: "90%",
+    maxWidth: 340,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 32,
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 28,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 18,
   },
 
   // Icon
   iconWrapper: {
-    width: 106,
-    height: 106,
+    width: 82,
+    height: 82,
   },
   iconCircle: {
-    width: 106,
-    height: 106,
-    borderRadius: 53,
+    width: 82,
+    height: 82,
+    borderRadius: 40,
     backgroundColor: "#F1EDFC",
     alignItems: "center",
     justifyContent: "center",
   },
   checkBadge: {
     position: "absolute",
-    right: 3,
+    right: 0,
     bottom: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 3,
     borderColor: "#FFFFFF",
     backgroundColor: BrandColors.purple,
     alignItems: "center",
@@ -188,22 +188,22 @@ const styles = StyleSheet.create({
 
   // Text
   title: {
-    marginTop: 14,
-    fontSize: 30,
+    marginTop: 10,
+    fontSize: 24,
     fontWeight: "800",
     color: "#000",
     textAlign: "center",
   },
   question: {
-    marginTop: 14,
-    fontSize: 16,
+    marginTop: 10,
+    fontSize: 14,
     color: "#000",
     textAlign: "center",
   },
   note: {
     marginTop: 12,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     color: "#6E6E78",
     textAlign: "center",
   },
@@ -212,12 +212,12 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 26,
+    marginTop: 20,
     width: "100%",
   },
   button: {
     flex: 1,
-    height: 54,
+    height: 45,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.purple,
   },
   buttonText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
   },
   cancelText: {
