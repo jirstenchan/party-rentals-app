@@ -1,5 +1,6 @@
+import { Radius } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoutConfirmationModal } from "@/components/settings/logout-confirmation-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Radius, Spacing } from "@/constants/theme";
+import { BrandColors, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 // Sections and rows (UI only for now)

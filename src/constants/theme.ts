@@ -32,8 +32,39 @@ export const BrandColors = {
   border: "#D4D4D4",
   muted: "#B3B3B3",
   error: "#D93025",
+  pressed: "#6B2CF5", // 85%
+
+  // new (from home ui)
+  white: "#FFFFFF",
+  black: "#000000",
 } as const;
 
+// FontSizes (insert)
+/* 
+  // Home UI
+  headerTitle = fontSize: 22,
+  sectionTitle = fontSize: 20,
+  cardTtitle = fontSize: 16,
+  searchInput = fontSize: 14,
+  filterText = fontSize: 12,
+  empty = fontSize: 12,
+  viewButton = fontSzie: 11,
+  infoText = fontSize: 10,
+
+  // Event Details UI
+  headerTitle = fontSize: 22,
+  titleText = fontSize: 20,
+  aboutTitle = fontSize: 18,
+  ctaText = fontSize: 18,
+  host = fontSize: 14,
+  detailLine = fontSize: 14,
+  aboutBody = fontSize: 14,
+  pesoBadgeText = fontSize: 14,
+  notFound = fontSize: 12,
+
+
+
+*/
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */
@@ -75,6 +106,10 @@ export const Radius = {
   large: 16,
   full: 999,
 } as const;
+
+// ButtonSizes (insert)
+
+// Color Palette for Dark Mode (insert)
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
