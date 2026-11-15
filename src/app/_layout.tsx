@@ -125,9 +125,6 @@ function RootNavigator() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="event" />
             <Stack.Screen name="settings" />
-            <Stack.Screen name="buy" />
-            <Stack.Screen name="payment" />
-            <Stack.Screen name="payment-proof" />
           </Stack.Protected>
 
           {/* Logged out, onboarding already seen */}
