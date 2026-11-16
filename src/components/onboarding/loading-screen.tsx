@@ -8,10 +8,16 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useOnboarding } from "@/lib/onboarding";
 
 export default function LoadingScreen() {
   const router = useRouter();
+  const { seen } = useOnboarding();
   const progress = useRef(new Animated.Value(0)).current;
+
+  // Keep the latest value in a ref so the animation doesn't restart when `seen` changes
+  const seenRef = useRef(seen);
+  seenRef.current = seen;
 
   useEffect(() => {
     progress.setValue(0);
@@ -25,11 +31,10 @@ export default function LoadingScreen() {
 
     animation.start(({ finished }) => {
       if (finished) {
-        router.replace("/onboarding-1");
+        router.replace(seenRef.current ? "/home" : "/onboarding-1");
       }
     });
 
-    // Stop the animation when the component unmounts.
     return () => animation.stop();
   }, [progress, router]);
 
