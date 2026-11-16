@@ -251,7 +251,7 @@ export default function HomeScreen() {
                     <Pressable
                       onPress={() => toggleFavorite(item.id)}
                       hitSlop={12}
-                      style={{ paddingTop: 2, paddingRight: 4 }}
+                      style={{ paddingTop: 1, paddingRight: 4 }}
                       accessibilityRole="button"
                       accessibilityLabel={
                         isFavorite ? "Remove from saved" : "Save event"
