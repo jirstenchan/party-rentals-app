@@ -180,6 +180,7 @@ export default function EventDetailsScreen() {
 
           <ThemedText style={styles.headerTitle}>EVENT DETAILS</ThemedText>
 
+          {/* Heart Icon - Saved Events */}
           <Pressable
             onPress={() => setIsFavorite((v) => !v)}
             hitSlop={12}
