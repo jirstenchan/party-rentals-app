@@ -1,12 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Radius } from "@/constants/theme";
-import { formatPeso, getEventById } from "@/data/mock-events";
+import { BrandColors, Radius, Spacing } from "@/constants/theme";
+import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
+import { useCallback, useEffect, useState } from "react";
 
 const PURPLE = BrandColors.purple;
 const BORDER = BrandColors.border;
@@ -14,6 +22,40 @@ const MUTED = BrandColors.muted;
 const WHITE = BrandColors.white;
 const MARGIN = 25;
 const ICON_SIZE = 38;
+
+const formatPrice = (price: number) =>
+  price === 0 ? "Free" : `$${price.toFixed(2)}`;
+
+const parseDay = (day: string) => {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
+const formatDay = (day: string) =>
+  parseDay(day).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+const salesLabel = (t: EventTicketDto) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (t.salesStart && parseDay(t.salesStart) > today)
+    return `On sale ${formatDay(t.salesStart)}`;
+  if (t.salesEnd && parseDay(t.salesEnd) < today) return "Sales ended";
+  if (t.salesEnd) return `Onsale until ${formatDay(t.salesEnd)}`;
+  return null;
+};
+
+const isOnSale = (t: EventTicketDto) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (t.salesStart && parseDay(t.salesStart) > today) return false;
+  if (t.salesEnd && parseDay(t.salesEnd) > today) return false;
+  return true;
+};
 
 function BuyButton({
   disabled,
@@ -47,11 +89,49 @@ function BuyButton({
 export default function VenueMapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const event = getEventById(id);
+  const [error, setError] = useState<string | null>(null);
+  const [event, setEvent] = useState<EventDetailDto | null>(null);
+  const [refresh, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const load = useCallback(async () => {
+    try {
+      setError(null);
+      setEvent(await fetchEvent(id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    }
+  }, [id]);
+
+  useEffect(() => {
+    setLoading(true);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  if (loading)
+    return (
+      <>
+        <Stack.Screen options={{ title: "Loading..." }} />
+        <ActivityIndicator style={styles.loading} />
+      </>
+    );
+
+  if (!event)
+    return (
+      <ThemedView>
+        <ThemedText>{error ?? "Event not found."}</ThemedText>
+      </ThemedView>
+    );
+
+  const tickets = event.tickets ?? [];
   // TODO: navigate to checkout when the Buy screen is ready, e.g.
   // router.push({ pathname: "/buy", params: { eventId: id, itemId } })
-  function handleBuy(_itemId: string) {}
 
   return (
     <ThemedView style={styles.container}>
@@ -81,12 +161,12 @@ export default function VenueMapScreen() {
           >
             {/* Floor plan (the image uploaded in Create Event) */}
             <View style={styles.mapFrame}>
-              {event.venueMapUri ? (
+              {event.mapUrl ? (
                 <Image
-                  source={{ uri: event.venueMapUri }}
+                  source={{ uri: event.mapUrl }}
                   style={styles.mapImage}
-                  resizeMode="contain"
-                  accessibilityLabel={`${event.venueName} floor plan`}
+                  resizeMode="cover"
+                  accessibilityLabel={`${event.name} floor plan`}
                 />
               ) : (
                 <View style={[styles.mapImage, styles.noMap]}>
@@ -99,32 +179,51 @@ export default function VenueMapScreen() {
 
             {/* Tickets */}
             <ThemedText style={styles.sectionTitle}>Tickets</ThemedText>
-            <View style={styles.cards}>
-              {event.tickets.map((ticket) => (
-                <View key={ticket.id} style={styles.card}>
-                  <Ionicons
-                    name="ticket-outline"
-                    size={ICON_SIZE}
-                    color={PURPLE}
-                  />
-                  <View style={styles.cardInfo}>
-                    <ThemedText style={styles.cardName} numberOfLines={1}>
-                      {ticket.name}
+            {tickets.length === 0 ? (
+              <ThemedText type="small">No tickets available yet.</ThemedText>
+            ) : (
+              tickets.map((ticket) => {
+                const label = salesLabel(ticket);
+                const canBuy = isOnSale(ticket);
+                return (
+                  <ThemedView
+                    key={ticket.ticketId}
+                    type="backgroundElement"
+                    style={styles.card}
+                  >
+                    <ThemedText>{ticket.name}</ThemedText>
+                    <ThemedText type="small">
+                      {formatPrice(ticket.ticketPrice)}
                     </ThemedText>
-                    <ThemedText style={styles.cardSub}>
-                      {formatPeso(ticket.price)}
-                    </ThemedText>
-                  </View>
-                  <BuyButton
-                    label={`Buy ${ticket.name}`}
-                    onPress={() => handleBuy(ticket.id)}
-                  />
-                </View>
-              ))}
-            </View>
+                    {label ? (
+                      <ThemedText type="small">{label}</ThemedText>
+                    ) : null}
+                    <Pressable
+                      disabled={!canBuy}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/buy",
+                          params: {
+                            eventId: event.id,
+                            ticketId: ticket.ticketId,
+                          },
+                        })
+                      }
+                      style={({ pressed }) => [
+                        styles.buy,
+                        !canBuy && styles.buy,
+                        pressed && styles.buy,
+                      ]}
+                    >
+                      <ThemedText>Buy</ThemedText>
+                    </Pressable>
+                  </ThemedView>
+                );
+              })
+            )}
 
             {/* Tables */}
-            {event.tables.length > 0 ? (
+            {/* {event.tables.length > 0 ? (
               <>
                 <ThemedText style={[styles.sectionTitle, styles.sectionGap]}>
                   Tables
@@ -176,7 +275,7 @@ export default function VenueMapScreen() {
                   })}
                 </View>
               </>
-            ) : null}
+            ) : null} */}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -187,6 +286,7 @@ export default function VenueMapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
+  loading: { marginTop: Spacing.five },
 
   // Header
   header: {
@@ -221,7 +321,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: WHITE,
   },
-  mapImage: { width: "100%", aspectRatio: 2 / 3 },
+  mapImage: { width: "100%", height: 200, borderRadius: 12 },
   noMap: { alignItems: "center", justifyContent: "center" },
 
   // Sections

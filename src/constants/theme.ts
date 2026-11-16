@@ -74,6 +74,10 @@ export const BrandColors = {
   
   // Account (Profile) UI
 
+  // Account (Profile - Settings) UI (not done)
+
+  // Account (Profile - Settings Modal) UI (not done)
+
 */
 export const Fonts = Platform.select({
   ios: {

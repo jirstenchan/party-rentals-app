@@ -252,7 +252,7 @@ export default function EventDetailsScreen() {
                   </ThemedText>
 
                   <ThemedText style={styles.host} numberOfLines={1}>
-                    Hosted by: {HOST_NAME}
+                    Hosted by: {event.host.name}
                   </ThemedText>
                 </View>
               </View>
