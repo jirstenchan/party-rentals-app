@@ -1,5 +1,6 @@
+import { Radius } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoutConfirmationModal } from "@/components/settings/logout-confirmation-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Radius, Spacing } from "@/constants/theme";
+import { BrandColors, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 // Sections and rows (UI only for now)
@@ -98,7 +99,7 @@ export default function SettingsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={item.label}
                 >
-                  <Ionicons name={item.icon} size={26} color={theme.text} />
+                  <Ionicons name={item.icon} size={22} color={theme.text} />
 
                   <ThemedText style={styles.rowLabel} numberOfLines={1}>
                     {item.label}
@@ -106,7 +107,7 @@ export default function SettingsScreen() {
 
                   <Ionicons
                     name="chevron-forward"
-                    size={24}
+                    size={22}
                     color={theme.text}
                   />
                 </Pressable>
@@ -126,7 +127,7 @@ export default function SettingsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Log Out"
           >
-            <Ionicons name="log-out-outline" size={32} color={PURPLE} />
+            <Ionicons name="log-out-outline" size={28} color={PURPLE} />
             <ThemedText style={styles.logOutText}>Log Out</ThemedText>
           </Pressable>
         </View>
@@ -164,8 +165,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: PURPLE,
-    fontSize: 26,
-    lineHeight: 40,
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: "800",
   },
 
@@ -181,8 +182,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionTitle: {
-    fontSize: 20,
-    lineHeight: 32,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: "700",
   },
 
@@ -191,30 +192,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    minHeight: 60,
+    minHeight: 55,
     paddingHorizontal: 18,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: BrandColors.border,
     borderRadius: 16,
   },
   rowLabel: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 28,
+    fontSize: 14,
+    lineHeight: 24,
     fontWeight: "500",
   },
 
   // Log Out
   footer: {
-    paddingBottom: 24,
+    paddingBottom: 22,
   },
   logOut: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    height: 64,
-    borderRadius: Radius.small,
+    height: 55,
+    borderRadius: Radius.medium,
     backgroundColor: PURPLE_TINT,
   },
   logOutPressed: {
@@ -223,8 +224,8 @@ const styles = StyleSheet.create({
   },
   logOutText: {
     color: PURPLE,
-    fontSize: 20,
-    lineHeight: 32,
+    fontSize: 18,
+    lineHeight: 28,
     fontWeight: "700",
   },
   pressed: {

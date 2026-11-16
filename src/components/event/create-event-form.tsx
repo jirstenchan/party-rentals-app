@@ -10,7 +10,7 @@ import { TicketDraftList } from "@/components/event/ticket-draft-list";
 
 import { TableModal } from "@/components/event/table-modal";
 import { TicketModal } from "@/components/event/ticket-modal";
-
+import { Radius } from "@/constants/theme";
 import { createEvent, deleteEvent } from "@/data/event";
 import {
   deleteEventGraphic,
@@ -251,7 +251,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
       {/* Date card: both dates remain independent. */}
       <View style={styles.dateCard}>
-        <Ionicons name="calendar-outline" size={34} color="#000" />
+        <Ionicons name="calendar-outline" size={30} color="#000" />
 
         <View style={styles.flex}>
           <Text style={styles.cardLabel}>Date</Text>
@@ -340,7 +340,7 @@ export function CreateEventForm({ onCreated }: Props) {
         value={location}
         onChangeText={setLocation}
         placeholder="Where is it happening?"
-        icon={<Ionicons name="location-outline" size={36} color="#000" />}
+        icon={<Ionicons name="location-outline" size={30} color="#000" />}
         cardStyle={styles.venueCard}
       />
 
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     minHeight: 96,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   descriptionCard: {
     minHeight: 96,
@@ -551,8 +551,9 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 4,
   },
+  // Date
   cardLabel: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: "#000",
   },
@@ -609,12 +610,12 @@ const styles = StyleSheet.create({
     height: 44,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
     color: "#000",
   },
   sectionAction: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "500",
     color: PURPLE,
   },
@@ -627,7 +628,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mapPlaceholderText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "500",
     color: "#85858F",
   },
@@ -644,12 +645,12 @@ const styles = StyleSheet.create({
     minHeight: 84,
   },
   listTitle: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: "700",
     color: "#000",
   },
   listSub: {
-    fontSize: 13.5,
+    fontSize: 12,
     color: "#7A7A7A",
     marginTop: 4,
   },
@@ -661,7 +662,7 @@ const styles = StyleSheet.create({
   },
   editText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
   },
   status: {
@@ -673,9 +674,9 @@ const styles = StyleSheet.create({
     color: "#D93025",
   },
   createButton: {
-    backgroundColor: "#6C2CF5",
-    height: 64,
-    borderRadius: 20,
+    backgroundColor: PURPLE,
+    height: 55,
+    borderRadius: Radius.large,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 18,
@@ -684,7 +685,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   createButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
     color: "#FFFFFF",
   },

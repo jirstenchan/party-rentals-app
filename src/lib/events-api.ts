@@ -17,6 +17,12 @@ export type EventDto = {
   eventImageUrl: string | null;
 };
 
+export type HostDto = {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+};
+
 export type EventTicketDto = {
   ticketId: string;
   eventId: string;
@@ -39,6 +45,7 @@ export type EventDetailDto = EventDto & {
   description?: string | null;
   endTime?: string | null;
   tickets: EventTicketDto[];
+  host: HostDto;
   tables: EventTableDto[];
 };
 
@@ -162,3 +169,8 @@ export async function submitPayment(
   }
   return res.json();
 }
+
+// export async function fetchHost(hostId: string): Promise<HostDto>{
+//   const token = await getToken();
+//   const res = await fetch()
+// }

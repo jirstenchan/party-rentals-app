@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Image, Pressable, StyleSheet, View, Text } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EventList } from "@/components/event/event-list";
@@ -9,13 +9,13 @@ import { ThemedView } from "@/components/themed-view";
 import {
   BottomTabInset,
   BrandColors,
-  Spacing,
   Radius,
+  Spacing,
 } from "@/constants/theme";
 import { useProfile } from "@/hooks/use-profile";
 import { fetchEvents } from "@/lib/events-api";
-import { useCallback, useState } from "react";
 import { fetchMyReservations } from "@/lib/reservation-api";
+import { useCallback, useState } from "react";
 
 const PURPLE = BrandColors.purple;
 const PURPLE_TINT = "#F1EDFC";
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: PURPLE,
-    fontSize: 26,
+    fontSize: 22,
     lineHeight: 40,
     fontWeight: "800",
   },
@@ -268,14 +268,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   name: {
-    fontSize: 26,
+    fontSize: 22,
     lineHeight: 34,
     fontWeight: "800",
   },
   handle: {
-    fontSize: 17,
+    fontSize: 16,
     color: "#716D78",
-    lineHeight: 24,
+    lineHeight: 18,
     fontWeight: "500",
   },
   locationRow: {
@@ -288,8 +288,8 @@ const styles = StyleSheet.create({
     marginLeft: -4,
   },
   location: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 18,
   },
 
   // Stats (Events & Reservations)
@@ -302,14 +302,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 18,
     fontWeight: "800",
   },
   statLabel: {
-    fontSize: 17,
+    fontSize: 14,
     color: "#716D78",
-    lineHeight: 24,
+    lineHeight: 18,
     fontWeight: "500",
   },
 
@@ -324,16 +324,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionCircle: {
-    width: 54,
-    height: 54,
+    width: 40,
+    height: 40,
     borderRadius: 27,
     backgroundColor: PURPLE_TINT,
     alignItems: "center",
     justifyContent: "center",
   },
   actionLabel: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 18,
   },
 
   // Edit Profile
@@ -342,16 +342,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    height: 44,
+    height: 40,
     borderRadius: Radius.small,
     backgroundColor: PURPLE_TINT,
     marginTop: Spacing.two,
   },
   editText: {
     color: PURPLE,
-    fontSize: 17,
+    fontSize: 16,
     lineHeight: 26,
     fontWeight: "600",
+    transform: [{ translateX: -5 }],
   },
 
   // History
@@ -359,11 +360,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: Spacing.two,
+    marginTop: 0,
   },
   sectionTitle: {
-    fontSize: 22,
-    lineHeight: 36,
+    fontSize: 20,
+    lineHeight: 30,
     fontWeight: "800",
   },
   seeAll: {

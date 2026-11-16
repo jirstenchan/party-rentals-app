@@ -58,12 +58,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: "#000",
   },
   input: {
-    fontSize: 15,
+    fontSize: 13,
     color: "#000",
     paddingVertical: 4,
     paddingHorizontal: 0,

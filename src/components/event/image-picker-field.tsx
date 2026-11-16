@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   pressableFill: { width: "100%" },
   preview: { width: "100%", borderRadius: 8 },
   action: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "500",
     color: PURPLE,
   },

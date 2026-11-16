@@ -1,5 +1,5 @@
-import "expo-sqlite/localStorage/install";
 import { createClient } from "@supabase/supabase-js";
+import "expo-sqlite/localStorage/install";
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const key = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
 console.log("SUPABASE URL:", process.env.EXPO_PUBLIC_SUPABASE_URL);

@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: PURPLE,
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "800",
   },
   eventsSection: {
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   refreshText: {
     color: PURPLE,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
   status: {
