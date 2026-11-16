@@ -7,6 +7,8 @@ import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
 import { ImagePickerField } from "@/components/event/image-picker-field";
 import { TicketDraftList } from "@/components/event/ticket-draft-list";
+
+import { TableModal } from "@/components/event/table-modal";
 import { TicketModal } from "@/components/event/ticket-modal";
 import { Radius } from "@/constants/theme";
 import { createEvent, deleteEvent } from "@/data/event";
@@ -20,6 +22,7 @@ import {
   uploadHostQr,
 } from "@/data/image";
 import { problemFor } from "@/data/problem";
+import { addTable, NewTable } from "@/data/table";
 import { addTicket, NewTicket } from "@/data/ticket";
 
 const PURPLE = "#6B2CF5";
@@ -42,6 +45,8 @@ export function CreateEventForm({ onCreated }: Props) {
   const [status, setStatus] = useState("");
   const [map, setMap] = useState<PickedImage | null>(null);
   const [qrPayment, setQrPayment] = useState<PickedImage | null>(null);
+  const [tables, setTables] = useState<NewTable[]>([]);
+  const [tableModalVisible, setTableModalVisible] = useState(false);
   const [eventGraphicImage, setEventGraphicImage] =
     useState<PickedImage | null>(null);
 
@@ -147,12 +152,27 @@ export function CreateEventForm({ onCreated }: Props) {
         ),
       );
 
-      if (results.some((result) => result.status === "rejected")) {
-        // Preserve your classmate's rollback behavior.
+      //call to submit tables
+      const tableResults = await Promise.allSettled(
+        tables.map((t) => addTable({ eventId: created.id, ...t })),
+      );
+
+      if (results.some((r) => r.status === "rejected")) {
+        // Every event needs a ticket, so undo the event and keep the form filled in
         await deleteEvent(created.id).catch(() => {});
         const cleanupSucceeded = await cleanupUploadedImages();
         setStatus(
           "Couldn't save the tickets, so the event wasn't created. Try again." +
+            (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
+        );
+        return;
+      }
+
+      if (tableResults.some((r) => r.status === "rejected")) {
+        // Tables are optional, so we don't delete the event if they fail
+        const cleanupSucceeded = await cleanupUploadedImages();
+        setStatus(
+          "Couldn't save the tables. The event was created, but try again." +
             (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
         );
         return;
@@ -344,6 +364,12 @@ export function CreateEventForm({ onCreated }: Props) {
           showPreview={false}
         />
       </View>
+
+      <TableModal
+        visible={tableModalVisible}
+        onClose={() => setTableModalVisible(false)}
+        onSave={(table) => setTables((prev) => [...prev, table])}
+      />
 
       <ImagePickerField
         value={map}

@@ -32,11 +32,21 @@ export type EventTicketDto = {
   salesEnd: string | null;
 };
 
+export type EventTableDto = {
+  tableId: string;
+  eventId: string;
+  label: string;
+  tablePrice: number;
+  status: string;
+  capacity: number;
+};
+
 export type EventDetailDto = EventDto & {
   description?: string | null;
   endTime?: string | null;
   tickets: EventTicketDto[];
   host: HostDto;
+  tables: EventTableDto[];
 };
 
 async function getToken(): Promise<string | null> {

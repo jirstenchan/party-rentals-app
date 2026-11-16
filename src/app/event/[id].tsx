@@ -16,53 +16,86 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius } from "@/constants/theme";
-import { fetchEvent, type EventDetailDto } from "@/lib/events-api";
+import {
+  EventDetailDto,
+  EventTicketDto,
+  fetchEvent
+} from "@/lib/events-api";
 
 const PURPLE = BrandColors.purple;
 const BORDER = BrandColors.border;
 const MARGIN = 25;
 const COVER_HEIGHT = 180;
 
-// Include this
-// TEMPORARY HOST INFORMATION
-// TODO: Replace these values with hostName and hostAvatarUri
-// from the backend once those fields are included in EventDetailDto.
-const HOST_NAME = "Event Host";
-const HOST_AVATAR_URI: string | null = null;
-
-// Format date.
-const formatEventDate = (iso: string) => {
-  const date = new Date(iso);
-
-  if (Number.isNaN(date.getTime())) return "Date unavailable";
-
-  return date.toLocaleDateString("en-PH", {
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
-    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+const formatShortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+// Same day:  "2:00 PM – 6:00 PM"
+// Multi-day: "Nov 20, 2:00 PM – Nov 21, 10:00 AM"
+const formatEventTime = (startIso: string, endIso?: string | null) => {
+  const start = new Date(startIso);
+  if (isNaN(start.getTime())) return "Time not specified";
+
+  if (!endIso) return formatTime(startIso);
+
+  const end = new Date(endIso);
+  if (isNaN(end.getTime())) return formatTime(startIso);
+
+  if (isSameDay(start, end)) {
+    return `${formatTime(startIso)} – ${formatTime(endIso)}`;
+  }
+
+  return `${formatShortDate(startIso)}, ${formatTime(startIso)} – ${formatShortDate(endIso)}, ${formatTime(endIso)}`;
 };
 
-// Format time.
-const formatEventTime = (start: string, end?: string | null) => {
-  const formatTime = (iso: string) => {
-    const date = new Date(iso);
+const formatPrice = (price: number) =>
+  price === 0 ? "Free" : `$${price.toFixed(2)}`;
 
-    if (Number.isNaN(date.getTime())) return "";
+// "YYYY-MM-DD" -> local date. new Date("YYYY-MM-DD") parses as UTC and can
+// show the previous day in negative-offset timezones.
+const parseDay = (day: string) => {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
 
-    return date.toLocaleTimeString("en-PH", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+const formatDay = (day: string) =>
+  parseDay(day).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 
-  const startTime = formatTime(start);
-  const endTime = end ? formatTime(end) : "";
+const salesLabel = (t: EventTicketDto) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  if (!startTime) return "Time unavailable";
-
-  return endTime ? `${startTime} - ${endTime}` : startTime;
+  if (t.salesStart && parseDay(t.salesStart) > today)
+    return `On sale ${formatDay(t.salesStart)}`;
+  if (t.salesEnd && parseDay(t.salesEnd) < today) return "Sales ended";
+  if (t.salesEnd) return `On sale until ${formatDay(t.salesEnd)}`;
+  return null;
 };
 
 // Format ticket price in Philippine pesos.
@@ -235,9 +268,9 @@ export default function EventDetailsScreen() {
 
               {/* Title + Host */}
               <View style={styles.titleRow}>
-                {HOST_AVATAR_URI ? (
+                {event.host.avatarUrl ? (
                   <Image
-                    source={{ uri: HOST_AVATAR_URI }}
+                    source={{ uri: event.host.name }}
                     style={styles.avatar}
                   />
                 ) : (
@@ -266,7 +299,7 @@ export default function EventDetailsScreen() {
                   </View>
 
                   <ThemedText style={styles.detailLine}>
-                    {formatEventDate(event.startTime)}
+                    {formatDateTime(event.startTime)}
                   </ThemedText>
                 </View>
 
