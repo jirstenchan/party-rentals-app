@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Button,
@@ -16,9 +17,14 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { getSignupError, getSignupMetadata } from "@/lib/signup";
+import {
+  isUnconfirmedEmailError,
+  rememberPendingEmail,
+} from "@/lib/email-verification";
 import { supabase } from "@/lib/supabase";
 
 export function SignIn() {
+  const router = useRouter();
   const theme = useTheme();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,14 +63,30 @@ export function SignIn() {
           options: { data: getSignupMetadata(details) },
         });
         if (error) setProblem(error.message);
-        else if (!data.session)
-          setNotice("Check your email to confirm your account.");
+        else if (!data.session) {
+          await rememberPendingEmail(email.trim(), Date.now());
+          setPassword("");
+          setConfirmPassword("");
+          router.push({
+            pathname: "/verify-email",
+            params: { email: email.trim() },
+          });
+        } else {
+          await supabase.auth.signOut();
+          setProblem("Email confirmation must be enabled before signing up.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-        if (error) setProblem(error.message);
+        if (isUnconfirmedEmailError(error)) {
+          await rememberPendingEmail(email.trim());
+          router.push({
+            pathname: "/verify-email",
+            params: { email: email.trim() },
+          });
+        } else if (error) setProblem(error.message);
       }
     } catch (error) {
       setProblem(error instanceof Error ? error.message : "Please try again.");
@@ -124,7 +146,9 @@ export function SignIn() {
             disabled={busy}
           />
         )}
-        <View style={[styles.passwordRow, { borderColor: theme.textSecondary }]}>
+        <View
+          style={[styles.passwordRow, { borderColor: theme.textSecondary }]}
+        >
           <TextInput
             value={password}
             onChangeText={setPassword}
@@ -175,6 +199,18 @@ export function SignIn() {
           }}
           disabled={busy}
         />
+        {!creating && (
+          <Button
+            title="Enter verification code"
+            disabled={busy}
+            onPress={() =>
+              router.push({
+                pathname: "/verify-email",
+                params: { email: email.trim() },
+              })
+            }
+          />
+        )}
       </ScrollView>
     </ThemedView>
   );

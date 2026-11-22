@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EventList } from "@/components/event/event-list";
+import { AccountTierBadge } from "@/components/settings/account-controls";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -126,6 +127,15 @@ export default function AccountScreen() {
               <ThemedText themeColor="textSecondary" style={styles.handle}>
                 Role: {profile?.role}
               </ThemedText>
+              {profile && (
+                <Pressable
+                  onPress={() => router.push("/settings/verify-identity")}
+                  accessibilityRole="button"
+                  accessibilityLabel="View account verification"
+                >
+                  <AccountTierBadge tier={profile.tier} />
+                </Pressable>
+              )}
               {/* TODO: replace the placeholder with the real location */}
               <View style={styles.locationRow}>
                 <Ionicons
@@ -179,8 +189,8 @@ export default function AccountScreen() {
           </View>
 
           {/* Edit Profile */}
-          {/* TODO: hook up the edit profile screen */}
           <Pressable
+            onPress={() => router.push("/settings/personal-information")}
             style={({ pressed }) => [
               styles.editButton,
               pressed && styles.pressed,
