@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +21,10 @@ import Svg, { Path } from "react-native-svg";
 import { DataCollectionConsent } from "@/components/data-collection-consent";
 import { DateOfBirthField } from "@/components/date-of-birth-field";
 import { getSignupError, getSignupMetadata } from "@/lib/signup";
+import {
+  isUnconfirmedEmailError,
+  rememberPendingEmail,
+} from "@/lib/email-verification";
 import { supabase } from "@/lib/supabase";
 
 const PRIMARY = "#6C2CF5";
@@ -165,6 +170,7 @@ function PrimaryButton({
 /* main screen */
 
 export function SignIn() {
+  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
   const [fullName, setFullName] = useState("");
@@ -202,7 +208,13 @@ export function SignIn() {
         email: email.trim(),
         password,
       });
-      if (error) setProblem(error.message);
+      if (isUnconfirmedEmailError(error)) {
+        await rememberPendingEmail(email.trim());
+        router.push({
+          pathname: "/verify-email",
+          params: { email: email.trim() },
+        });
+      } else if (error) setProblem(error.message);
     } catch (error) {
       setProblem(error instanceof Error ? error.message : "Please try again.");
     } finally {
@@ -236,8 +248,18 @@ export function SignIn() {
       });
 
       if (error) setProblem(error.message);
-      else if (!data.session)
-        setNotice("Check your email to confirm your account.");
+      else if (!data.session) {
+        await rememberPendingEmail(email.trim(), Date.now());
+        setPassword("");
+        setConfirm("");
+        router.push({
+          pathname: "/verify-email",
+          params: { email: email.trim() },
+        });
+      } else {
+        await supabase.auth.signOut();
+        setProblem("Email confirmation must be enabled before signing up.");
+      }
     } catch (error) {
       setProblem(error instanceof Error ? error.message : "Please try again.");
     } finally {
@@ -401,6 +423,20 @@ export function SignIn() {
                   onPress={handleLogin}
                   busy={busy}
                 />
+
+                {/* <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: "/verify-email",
+                      params: { email: email.trim() },
+                    })
+                  }
+                  disabled={busy}
+                  accessibilityRole="button"
+                  style={styles.verifyLink}
+                >
+                  <Text style={styles.switchLink}>Enter verification code</Text>
+                </Pressable> */}
 
                 <SocialRow disabled={busy} />
 
@@ -592,5 +628,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: PRIMARY,
     textDecorationLine: "underline",
+  },
+  verifyLink: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
   },
 });

@@ -48,6 +48,7 @@ function RootNavigator() {
           {/* Logged out, onboarding already seen */}
           <Stack.Protected guard={!!seen && !session}>
             <Stack.Screen name="login" />
+            <Stack.Screen name="verify-email" />
           </Stack.Protected>
         </Stack>
       )}
