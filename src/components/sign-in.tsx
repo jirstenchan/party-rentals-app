@@ -1,36 +1,76 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   Button,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+
+import { DataCollectionConsent } from "@/components/data-collection-consent";
+import { DateOfBirthField } from "@/components/date-of-birth-field";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { getSignupError, getSignupMetadata } from "@/lib/signup";
 import { supabase } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
-//import React from "react";
 
 export function SignIn() {
   const theme = useTheme();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState("");
-  const valid = email.includes("@") && password.length >= 6;
+  const [notice, setNotice] = useState("");
+  const valid = email.includes("@") && password.length >= (creating ? 8 : 6);
   async function submit() {
+    if (busy) return;
+    const details = {
+      fullName,
+      email,
+      dateOfBirth,
+      password,
+      confirmPassword,
+      agreed,
+    };
+    if (creating) {
+      const validationError = getSignupError(details);
+      if (validationError) return setProblem(validationError);
+    }
     setBusy(true);
     setProblem("");
-    const { error } = creating
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
-    if (error) setProblem(error.message);
-    setBusy(false);
+    setNotice("");
+    try {
+      if (creating) {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { data: getSignupMetadata(details) },
+        });
+        if (error) setProblem(error.message);
+        else if (!data.session)
+          setNotice("Check your email to confirm your account.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) setProblem(error.message);
+      }
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const input = [
@@ -39,61 +79,111 @@ export function SignIn() {
   ];
 
   return (
-    <ThemedView style={styles.screen}>
-      <ThemedText type="title">Party Link</ThemedText>
-      <ThemedText themeColor="textSecondary">
-        {creating ? "Create an account" : "Sign in"}
-      </ThemedText>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        placeholderTextColor={theme.textSecondary}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!busy}
-        style={input}
-      />
-      <View style={[styles.passwordRow, { borderColor: theme.textSecondary }]}>
+    <ThemedView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ThemedText type="title">Party Link</ThemedText>
+        <ThemedText themeColor="textSecondary">
+          {creating ? "Create an account" : "Sign in"}
+        </ThemedText>
+        {creating && (
+          <>
+            <DataCollectionConsent
+              agreed={agreed}
+              onChange={setAgreed}
+              disabled={busy}
+            />
+            <TextInput
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Full Name"
+              accessibilityLabel="Full name"
+              placeholderTextColor={theme.textSecondary}
+              autoCapitalize="words"
+              editable={!busy}
+              style={input}
+            />
+          </>
+        )}
         <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password, 6 or more characters"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email"
           placeholderTextColor={theme.textSecondary}
-          secureTextEntry={!showPassword}
           autoCapitalize="none"
+          keyboardType="email-address"
           editable={!busy}
-          style={[styles.passwordInput, { color: theme.text }]}
+          style={input}
         />
-        <TouchableOpacity
-          onPress={() => setShowPassword(!showPassword)}
-          hitSlop={8}
-        >
-          <Ionicons
-            name={showPassword ? "eye-off" : "eye"}
-            size={24}
-            color={theme.textSecondary}
+        {creating && (
+          <DateOfBirthField
+            value={dateOfBirth}
+            onChange={setDateOfBirth}
+            disabled={busy}
           />
-        </TouchableOpacity>
-      </View>
-      {problem !== "" && <ThemedText>{problem}</ThemedText>}{" "}
-      <Button
-        title={busy ? "Please wait" : creating ? "Create account" : "Sign in"}
-        onPress={submit}
-        disabled={!valid || busy}
-      />
-      <Button
-        title={creating ? "I have an account" : "Create an account"}
-        onPress={() => setCreating(!creating)}
-        disabled={busy}
-      />
+        )}
+        <View style={[styles.passwordRow, { borderColor: theme.textSecondary }]}>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder={`Password, ${creating ? 8 : 6} or more characters`}
+            placeholderTextColor={theme.textSecondary}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            editable={!busy}
+            style={[styles.passwordInput, { color: theme.text }]}
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={24}
+              color={theme.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+        {creating && (
+          <TextInput
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirm Password"
+            accessibilityLabel="Confirm password"
+            placeholderTextColor={theme.textSecondary}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            editable={!busy}
+            style={input}
+          />
+        )}
+        {problem !== "" && <ThemedText>{problem}</ThemedText>}
+        {notice !== "" && <ThemedText>{notice}</ThemedText>}
+        <Button
+          title={busy ? "Please wait" : creating ? "Create account" : "Sign in"}
+          onPress={submit}
+          disabled={!valid || busy}
+        />
+        <Button
+          title={creating ? "I have an account" : "Create an account"}
+          onPress={() => {
+            setCreating(!creating);
+            setProblem("");
+            setNotice("");
+          }}
+          disabled={busy}
+        />
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
   screen: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     padding: Spacing.four,
     gap: Spacing.three,

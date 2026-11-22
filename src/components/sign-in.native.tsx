@@ -17,6 +17,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
+import { DataCollectionConsent } from "@/components/data-collection-consent";
+import { DateOfBirthField } from "@/components/date-of-birth-field";
+import { getSignupError, getSignupMetadata } from "@/lib/signup";
 import { supabase } from "@/lib/supabase";
 
 const PRIMARY = "#6C2CF5";
@@ -166,6 +169,7 @@ export function SignIn() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -209,15 +213,16 @@ export function SignIn() {
   async function handleSignup() {
     if (busy) return;
 
-    if (fullName.trim() === "") return setProblem("Enter your full name.");
-    if (!email.trim().includes("@")) return setProblem("Enter a valid email.");
-    if (password.length < 6)
-      return setProblem("Use at least 6 characters for your password.");
-    if (password !== confirm) return setProblem("Passwords don't match.");
-    if (!agreed)
-      return setProblem(
-        "Please agree to the Terms of Service and Privacy Policy.",
-      );
+    const details = {
+      fullName,
+      email,
+      dateOfBirth,
+      password,
+      confirmPassword: confirm,
+      agreed,
+    };
+    const validationError = getSignupError(details);
+    if (validationError) return setProblem(validationError);
 
     setBusy(true);
     setProblem("");
@@ -227,7 +232,7 @@ export function SignIn() {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: fullName.trim() } },
+        options: { data: getSignupMetadata(details) },
       });
 
       if (error) setProblem(error.message);
@@ -277,7 +282,12 @@ export function SignIn() {
                   <Text style={styles.violet}>PartyLink</Text>
                 </Text>
 
-                <View style={styles.fields}>
+                <View style={[styles.fields, styles.signupFields]}>
+                  <DataCollectionConsent
+                    agreed={agreed}
+                    onChange={setAgreed}
+                    disabled={busy}
+                  />
                   <Field
                     icon="person-outline"
                     placeholder="Full Name"
@@ -294,9 +304,14 @@ export function SignIn() {
                     keyboardType="email-address"
                     editable={!busy}
                   />
+                  <DateOfBirthField
+                    value={dateOfBirth}
+                    onChange={setDateOfBirth}
+                    disabled={busy}
+                  />
                   <Field
                     icon="lock-closed-outline"
-                    placeholder="Password"
+                    placeholder="Password, 8 or more characters"
                     value={password}
                     onChangeText={setPassword}
                     secure
@@ -311,27 +326,6 @@ export function SignIn() {
                     editable={!busy}
                   />
                 </View>
-
-                <Pressable
-                  onPress={() => setAgreed((a) => !a)}
-                  style={styles.termsRow}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: agreed }}
-                >
-                  <View
-                    style={[styles.checkbox, !agreed && styles.checkboxOff]}
-                  >
-                    {agreed && (
-                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                    )}
-                  </View>
-
-                  <Text style={styles.termsText}>
-                    I agree to the{" "}
-                    <Text style={styles.violet}>Terms of Service</Text> and{" "}
-                    <Text style={styles.violet}>Privacy Policy</Text>
-                  </Text>
-                </Pressable>
 
                 {problem !== "" && (
                   <Text style={styles.problem}>{problem}</Text>
@@ -483,6 +477,9 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 32,
   },
+  signupFields: {
+    marginBottom: 20,
+  },
   field: {
     height: 56,
     borderRadius: 15,
@@ -501,36 +498,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: TEXT,
-  },
-
-  /* terms */
-  termsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    marginTop: 22,
-    marginBottom: 20,
-    gap: 20,
-  },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    backgroundColor: PRIMARY,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkboxOff: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: BORDER,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    color: TEXT,
-    textAlign: "center",
   },
 
   /* login extras */
