@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -17,12 +19,15 @@ import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { deleteEvent, listMyEvents, type Event } from "@/data/event";
 import { problemFor } from "@/data/problem";
+import { useSetTabBarHidden } from "@/lib/tab-bar-visibility";
 
 const PURPLE = "#6B2CF5";
 
 export default function CreateEventScreen() {
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
+  const setTabBarHidden = useSetTabBarHidden();
+  const scrollAnchor = useRef(0);
 
   const [events, setEvents] = useState<Event[]>([]);
   const [status, setStatus] = useState("");
@@ -37,12 +42,39 @@ export default function CreateEventScreen() {
       paddingTop: insets.top,
       paddingLeft: insets.left,
       paddingRight: insets.right,
+      paddingBottom: insets.bottom,
     },
     web: {
       paddingTop: Spacing.six,
       paddingBottom: Spacing.four,
     },
   });
+
+  function handleScroll({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentInset, contentSize, layoutMeasurement } =
+      nativeEvent;
+    const maxOffset = Math.max(
+      0,
+      contentSize.height -
+        layoutMeasurement.height +
+        contentInset.top +
+        contentInset.bottom,
+    );
+    // Ignore overscroll bounce at either end of the form.
+    const offset = Math.min(
+      maxOffset,
+      Math.max(0, contentOffset.y + contentInset.top),
+    );
+    const delta = offset - scrollAnchor.current;
+
+    if (offset === 0) {
+      scrollAnchor.current = 0;
+      setTabBarHidden(false);
+    } else if (Math.abs(delta) >= 12) {
+      scrollAnchor.current = offset;
+      setTabBarHidden(delta > 0);
+    }
+  }
 
   async function handleRefresh() {
     try {
@@ -68,6 +100,8 @@ export default function CreateEventScreen() {
       keyboardShouldPersistTaps="handled"
       contentInset={insets}
       contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
       <View style={styles.container}>
         <View style={styles.header}>
@@ -129,7 +163,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: PURPLE,
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "800",
   },
   eventsSection: {
@@ -142,7 +176,7 @@ const styles = StyleSheet.create({
   },
   refreshText: {
     color: PURPLE,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
   status: {

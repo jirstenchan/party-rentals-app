@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "@/lib/onboarding";
 
 const PRIMARY = "#6C2CF5";
 const INACTIVE = "#D1D1D6";
@@ -25,10 +26,13 @@ function Pagination({ total, activeIndex }: PaginationProps) {
 }
 
 export default function OnboardingScreen3() {
-  const router = useRouter();
+  const { complete } = useOnboarding();
+
+  // const router = useRouter();
 
   const handleGetStarted = () => {
-    router.replace("/login");
+    console.log("get started pressed");
+    return complete();
   };
 
   return (

@@ -5,21 +5,25 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
-import { TicketDraftList } from "@/components/event/ticket-draft-list";
-import { TicketModal } from "@/components/event/ticket-modal";
-import { createEvent, deleteEvent } from "@/data/event";
-import { problemFor } from "@/data/problem";
-import { addTicket, NewTicket } from "@/data/ticket";
 import { ImagePickerField } from "@/components/event/image-picker-field";
+import { TicketDraftList } from "@/components/event/ticket-draft-list";
+
+import { TableModal } from "@/components/event/table-modal";
+import { TicketModal } from "@/components/event/ticket-modal";
+import { Radius } from "@/constants/theme";
+import { createEvent, deleteEvent } from "@/data/event";
 import {
+  deleteEventGraphic,
   deleteEventImage,
   deleteHostQr,
-  deleteEventGraphic,
   PickedImage,
+  uploadEventGraphic,
   uploadEventImage,
   uploadHostQr,
-  uploadEventGraphic,
 } from "@/data/image";
+import { problemFor } from "@/data/problem";
+import { addTable, NewTable } from "@/data/table";
+import { addTicket, NewTicket } from "@/data/ticket";
 
 const PURPLE = "#6B2CF5";
 const HOUR = 60 * 60 * 1000;
@@ -41,6 +45,8 @@ export function CreateEventForm({ onCreated }: Props) {
   const [status, setStatus] = useState("");
   const [map, setMap] = useState<PickedImage | null>(null);
   const [qrPayment, setQrPayment] = useState<PickedImage | null>(null);
+  const [tables, setTables] = useState<NewTable[]>([]);
+  const [tableModalVisible, setTableModalVisible] = useState(false);
   const [eventGraphicImage, setEventGraphicImage] =
     useState<PickedImage | null>(null);
 
@@ -146,12 +152,27 @@ export function CreateEventForm({ onCreated }: Props) {
         ),
       );
 
-      if (results.some((result) => result.status === "rejected")) {
-        // Preserve your classmate's rollback behavior.
+      //call to submit tables
+      const tableResults = await Promise.allSettled(
+        tables.map((t) => addTable({ eventId: created.id, ...t })),
+      );
+
+      if (results.some((r) => r.status === "rejected")) {
+        // Every event needs a ticket, so undo the event and keep the form filled in
         await deleteEvent(created.id).catch(() => {});
         const cleanupSucceeded = await cleanupUploadedImages();
         setStatus(
           "Couldn't save the tickets, so the event wasn't created. Try again." +
+            (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
+        );
+        return;
+      }
+
+      if (tableResults.some((r) => r.status === "rejected")) {
+        // Tables are optional, so we don't delete the event if they fail
+        const cleanupSucceeded = await cleanupUploadedImages();
+        setStatus(
+          "Couldn't save the tables. The event was created, but try again." +
             (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
         );
         return;
@@ -230,7 +251,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
       {/* Date card: both dates remain independent. */}
       <View style={styles.dateCard}>
-        <Ionicons name="calendar-outline" size={34} color="#000" />
+        <Ionicons name="calendar-outline" size={30} color="#000" />
 
         <View style={styles.flex}>
           <Text style={styles.cardLabel}>Date</Text>
@@ -319,7 +340,7 @@ export function CreateEventForm({ onCreated }: Props) {
         value={location}
         onChangeText={setLocation}
         placeholder="Where is it happening?"
-        icon={<Ionicons name="location-outline" size={36} color="#000" />}
+        icon={<Ionicons name="location-outline" size={30} color="#000" />}
         cardStyle={styles.venueCard}
       />
 
@@ -343,6 +364,12 @@ export function CreateEventForm({ onCreated }: Props) {
           showPreview={false}
         />
       </View>
+
+      <TableModal
+        visible={tableModalVisible}
+        onClose={() => setTableModalVisible(false)}
+        onSave={(table) => setTables((prev) => [...prev, table])}
+      />
 
       <ImagePickerField
         value={map}
@@ -501,7 +528,7 @@ const styles = StyleSheet.create({
     minHeight: 96,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   descriptionCard: {
     minHeight: 96,
@@ -524,8 +551,9 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 4,
   },
+  // Date
   cardLabel: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: "#000",
   },
@@ -582,12 +610,12 @@ const styles = StyleSheet.create({
     height: 44,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
     color: "#000",
   },
   sectionAction: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "500",
     color: PURPLE,
   },
@@ -600,7 +628,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mapPlaceholderText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "500",
     color: "#85858F",
   },
@@ -617,12 +645,12 @@ const styles = StyleSheet.create({
     minHeight: 84,
   },
   listTitle: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: "700",
     color: "#000",
   },
   listSub: {
-    fontSize: 13.5,
+    fontSize: 12,
     color: "#7A7A7A",
     marginTop: 4,
   },
@@ -634,7 +662,7 @@ const styles = StyleSheet.create({
   },
   editText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
   },
   status: {
@@ -646,9 +674,9 @@ const styles = StyleSheet.create({
     color: "#D93025",
   },
   createButton: {
-    backgroundColor: "#6C2CF5",
-    height: 64,
-    borderRadius: 20,
+    backgroundColor: PURPLE,
+    height: 55,
+    borderRadius: Radius.large,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 18,
@@ -657,7 +685,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   createButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
     color: "#FFFFFF",
   },

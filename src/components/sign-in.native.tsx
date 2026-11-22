@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +18,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
+import { DataCollectionConsent } from "@/components/data-collection-consent";
+import { DateOfBirthField } from "@/components/date-of-birth-field";
+import { getSignupError, getSignupMetadata } from "@/lib/signup";
+import {
+  isUnconfirmedEmailError,
+  rememberPendingEmail,
+} from "@/lib/email-verification";
 import { supabase } from "@/lib/supabase";
 
 const PRIMARY = "#6C2CF5";
@@ -162,10 +170,12 @@ function PrimaryButton({
 /* main screen */
 
 export function SignIn() {
+  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -198,7 +208,13 @@ export function SignIn() {
         email: email.trim(),
         password,
       });
-      if (error) setProblem(error.message);
+      if (isUnconfirmedEmailError(error)) {
+        await rememberPendingEmail(email.trim());
+        router.push({
+          pathname: "/verify-email",
+          params: { email: email.trim() },
+        });
+      } else if (error) setProblem(error.message);
     } catch (error) {
       setProblem(error instanceof Error ? error.message : "Please try again.");
     } finally {
@@ -209,15 +225,16 @@ export function SignIn() {
   async function handleSignup() {
     if (busy) return;
 
-    if (fullName.trim() === "") return setProblem("Enter your full name.");
-    if (!email.trim().includes("@")) return setProblem("Enter a valid email.");
-    if (password.length < 6)
-      return setProblem("Use at least 6 characters for your password.");
-    if (password !== confirm) return setProblem("Passwords don't match.");
-    if (!agreed)
-      return setProblem(
-        "Please agree to the Terms of Service and Privacy Policy.",
-      );
+    const details = {
+      fullName,
+      email,
+      dateOfBirth,
+      password,
+      confirmPassword: confirm,
+      agreed,
+    };
+    const validationError = getSignupError(details);
+    if (validationError) return setProblem(validationError);
 
     setBusy(true);
     setProblem("");
@@ -227,12 +244,22 @@ export function SignIn() {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: fullName.trim() } },
+        options: { data: getSignupMetadata(details) },
       });
 
       if (error) setProblem(error.message);
-      else if (!data.session)
-        setNotice("Check your email to confirm your account.");
+      else if (!data.session) {
+        await rememberPendingEmail(email.trim(), Date.now());
+        setPassword("");
+        setConfirm("");
+        router.push({
+          pathname: "/verify-email",
+          params: { email: email.trim() },
+        });
+      } else {
+        await supabase.auth.signOut();
+        setProblem("Email confirmation must be enabled before signing up.");
+      }
     } catch (error) {
       setProblem(error instanceof Error ? error.message : "Please try again.");
     } finally {
@@ -277,7 +304,12 @@ export function SignIn() {
                   <Text style={styles.violet}>PartyLink</Text>
                 </Text>
 
-                <View style={styles.fields}>
+                <View style={[styles.fields, styles.signupFields]}>
+                  <DataCollectionConsent
+                    agreed={agreed}
+                    onChange={setAgreed}
+                    disabled={busy}
+                  />
                   <Field
                     icon="person-outline"
                     placeholder="Full Name"
@@ -294,9 +326,14 @@ export function SignIn() {
                     keyboardType="email-address"
                     editable={!busy}
                   />
+                  <DateOfBirthField
+                    value={dateOfBirth}
+                    onChange={setDateOfBirth}
+                    disabled={busy}
+                  />
                   <Field
                     icon="lock-closed-outline"
-                    placeholder="Password"
+                    placeholder="Password, 8 or more characters"
                     value={password}
                     onChangeText={setPassword}
                     secure
@@ -311,27 +348,6 @@ export function SignIn() {
                     editable={!busy}
                   />
                 </View>
-
-                <Pressable
-                  onPress={() => setAgreed((a) => !a)}
-                  style={styles.termsRow}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: agreed }}
-                >
-                  <View
-                    style={[styles.checkbox, !agreed && styles.checkboxOff]}
-                  >
-                    {agreed && (
-                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                    )}
-                  </View>
-
-                  <Text style={styles.termsText}>
-                    I agree to the{" "}
-                    <Text style={styles.violet}>Terms of Service</Text> and{" "}
-                    <Text style={styles.violet}>Privacy Policy</Text>
-                  </Text>
-                </Pressable>
 
                 {problem !== "" && (
                   <Text style={styles.problem}>{problem}</Text>
@@ -408,6 +424,20 @@ export function SignIn() {
                   busy={busy}
                 />
 
+                {/* <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: "/verify-email",
+                      params: { email: email.trim() },
+                    })
+                  }
+                  disabled={busy}
+                  accessibilityRole="button"
+                  style={styles.verifyLink}
+                >
+                  <Text style={styles.switchLink}>Enter verification code</Text>
+                </Pressable> */}
+
                 <SocialRow disabled={busy} />
 
                 <View style={styles.switchBlock}>
@@ -483,6 +513,9 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 32,
   },
+  signupFields: {
+    marginBottom: 20,
+  },
   field: {
     height: 56,
     borderRadius: 15,
@@ -501,36 +534,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: TEXT,
-  },
-
-  /* terms */
-  termsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    marginTop: 22,
-    marginBottom: 20,
-    gap: 20,
-  },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    backgroundColor: PRIMARY,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkboxOff: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: BORDER,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    color: TEXT,
-    textAlign: "center",
   },
 
   /* login extras */
@@ -625,5 +628,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: PRIMARY,
     textDecorationLine: "underline",
+  },
+  verifyLink: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
   },
 });
