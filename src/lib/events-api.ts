@@ -58,17 +58,23 @@ function authHeaders(token: string | null): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Logs the status and body of failed requests to Metro, and reads
+// `error` or `message` from the response. Remove the console lines when done debugging.
 async function getApiError(res: Response, fallback: string): Promise<Error> {
-  const body: unknown = await res.json().catch(() => null);
-  if (
-    typeof body === "object" &&
-    body !== null &&
-    "error" in body &&
-    typeof body.error === "string"
-  ) {
-    return new Error(body.error);
-  }
-  return new Error(fallback);
+  const text = await res.text().catch(() => "");
+  console.warn(`API ${res.status} ${res.url}`, text); // check your Metro terminal
+
+  let body: any = null;
+  try {
+    body = JSON.parse(text);
+  } catch {}
+
+  const message =
+    (typeof body?.error === "string" && body.error) ||
+    (typeof body?.message === "string" && body.message) ||
+    null;
+
+  return new Error(message ?? fallback);
 }
 
 export async function fetchEvents(scope?: "mine"): Promise<EventDto[]> {
@@ -151,6 +157,13 @@ export async function submitPayment(
   screenshotUrl: string,
 ) {
   const token = await getToken();
+  // Debug: log what is sent. Remove once payments work.
+  console.log("submitPayment ->", `${API_URL}/api/payments`, {
+    reservationItemId,
+    referenceNum,
+    screenshotUrl,
+    hasToken: !!token,
+  });
   const res = await fetch(`${API_URL}/api/payments`, {
     method: "POST",
     headers: {
@@ -169,8 +182,3 @@ export async function submitPayment(
   }
   return res.json();
 }
-
-// export async function fetchHost(hostId: string): Promise<HostDto>{
-//   const token = await getToken();
-//   const res = await fetch()
-// }

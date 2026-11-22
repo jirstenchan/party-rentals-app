@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -14,49 +15,112 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
-import { useCallback, useEffect, useState } from "react";
 
 const PURPLE = BrandColors.purple;
 const BORDER = BrandColors.border;
 const MUTED = BrandColors.muted;
+const BLACK = BrandColors.black;
 const WHITE = BrandColors.white;
 const MARGIN = 25;
-const ICON_SIZE = 38;
 
+// Format ticket price
 const formatPrice = (price: number) =>
-  price === 0 ? "Free" : `$${price.toFixed(2)}`;
+  price === 0 ? "Free" : `₱ ${price.toLocaleString("en-PH")}`;
 
+// Convert date string into a Date object
 const parseDay = (day: string) => {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(y, m - 1, d);
 };
 
+// Format ticket sale dates
 const formatDay = (day: string) =>
   parseDay(day).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
   });
 
-const salesLabel = (t: EventTicketDto) => {
+// Get ticket sales status label
+const salesLabel = (ticket: EventTicketDto) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (t.salesStart && parseDay(t.salesStart) > today)
-    return `On sale ${formatDay(t.salesStart)}`;
-  if (t.salesEnd && parseDay(t.salesEnd) < today) return "Sales ended";
-  if (t.salesEnd) return `Onsale until ${formatDay(t.salesEnd)}`;
+  if (ticket.salesStart && parseDay(ticket.salesStart) > today) {
+    return `On sale ${formatDay(ticket.salesStart)}`;
+  }
+
+  if (ticket.salesEnd && parseDay(ticket.salesEnd) < today) {
+    return "Sales ended";
+  }
+
+  if (ticket.salesEnd) {
+    return `On sale until ${formatDay(ticket.salesEnd)}`;
+  }
+
   return null;
 };
 
-const isOnSale = (t: EventTicketDto) => {
+// Check if tickets are currently available for purchase
+const isOnSale = (ticket: EventTicketDto) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (t.salesStart && parseDay(t.salesStart) > today) return false;
-  if (t.salesEnd && parseDay(t.salesEnd) > today) return false;
+  if (ticket.salesStart && parseDay(ticket.salesStart) > today) {
+    return false;
+  }
+
+  if (ticket.salesEnd && parseDay(ticket.salesEnd) < today) {
+    return false;
+  }
+
   return true;
 };
 
+/** Round table with 8 chairs around it. */
+function TableIcon({ color }: { color: string }) {
+  const SIZE = 50;
+
+  return (
+    <View style={{ width: SIZE, height: SIZE }}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <View
+          key={i}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              alignItems: "center",
+              transform: [{ rotate: `${i * 45}deg` }],
+            },
+          ]}
+        >
+          <View
+            style={{
+              width: 15,
+              height: 7,
+              borderRadius: 3,
+              backgroundColor: color,
+            }}
+          />
+        </View>
+      ))}
+
+      <View
+        style={{
+          position: "absolute",
+          top: 9,
+          left: 9,
+          width: SIZE - 18,
+          height: SIZE - 18,
+          borderRadius: (SIZE - 18) / 2,
+          borderWidth: 1,
+          borderColor: color,
+        }}
+      />
+    </View>
+  );
+}
+
+// Buy button
 function BuyButton({
   disabled,
   label,
@@ -89,11 +153,16 @@ function BuyButton({
 export default function VenueMapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+
   const [error, setError] = useState<string | null>(null);
   const [event, setEvent] = useState<EventDetailDto | null>(null);
-  const [refresh, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Shape (width / height) of the uploaded map, read when the image loads
+  const [mapRatio, setMapRatio] = useState<number | null>(null);
+
+  // Fetch event details from the backend
   const load = useCallback(async () => {
     try {
       setError(null);
@@ -103,39 +172,65 @@ export default function VenueMapScreen() {
     }
   }, [id]);
 
+  // Load event when the screen opens
   useEffect(() => {
     setLoading(true);
-    load().finally(() => setLoading(false));
+
+    load().finally(() => {
+      setLoading(false);
+    });
   }, [load]);
 
+  // Refresh event information
   const onRefresh = async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
   };
 
-  if (loading)
+  // Loading screen
+  if (loading) {
     return (
       <>
         <Stack.Screen options={{ title: "Loading..." }} />
         <ActivityIndicator style={styles.loading} />
       </>
     );
+  }
 
-  if (!event)
+  // Event not found or failed to load
+  if (!event) {
     return (
-      <ThemedView>
-        <ThemedText>{error ?? "Event not found."}</ThemedText>
+      <ThemedView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="chevron-back" size={24} color={PURPLE} />
+            </Pressable>
+
+            <ThemedText style={styles.headerTitle}>VENUE MAP</ThemedText>
+          </View>
+
+          <ThemedText themeColor="textSecondary" style={styles.notFound}>
+            {error ?? "This event could not be found."}
+          </ThemedText>
+        </SafeAreaView>
       </ThemedView>
     );
+  }
 
   const tickets = event.tickets ?? [];
-  // TODO: navigate to checkout when the Buy screen is ready, e.g.
-  // router.push({ pathname: "/buy", params: { eventId: id, itemId } })
 
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
+
       <SafeAreaView style={styles.safeArea}>
         {/* Fixed header */}
         <View style={styles.header}>
@@ -147,59 +242,76 @@ export default function VenueMapScreen() {
           >
             <Ionicons name="chevron-back" size={24} color={PURPLE} />
           </Pressable>
+
           <ThemedText style={styles.headerTitle}>VENUE MAP</ThemedText>
         </View>
 
-        {!event ? (
-          <ThemedText themeColor="textSecondary" style={styles.notFound}>
-            This event could not be found.
-          </ThemedText>
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.content}
-          >
-            {/* Floor plan (the image uploaded in Create Event) */}
-            <View style={styles.mapFrame}>
-              {event.mapUrl ? (
-                <Image
-                  source={{ uri: event.mapUrl }}
-                  style={styles.mapImage}
-                  resizeMode="cover"
-                  accessibilityLabel={`${event.name} floor plan`}
-                />
-              ) : (
-                <View style={[styles.mapImage, styles.noMap]}>
-                  <ThemedText themeColor="textSecondary">
-                    No venue map uploaded for this event.
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-
-            {/* Tickets */}
-            <ThemedText style={styles.sectionTitle}>Tickets</ThemedText>
-            {tickets.length === 0 ? (
-              <ThemedText type="small">No tickets available yet.</ThemedText>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
+          {/* Floor plan uploaded in Create Event */}
+          <View style={styles.mapFrame}>
+            {event.mapUrl ? (
+              <Image
+                source={{ uri: event.mapUrl }}
+                style={[styles.mapImage, { aspectRatio: mapRatio ?? 3 / 2 }]}
+                resizeMode="contain"
+                onLoad={(e) => {
+                  const { width, height } = e.nativeEvent.source;
+                  if (width && height) setMapRatio(width / height);
+                }}
+                accessibilityLabel={`${event.name} floor plan`}
+              />
             ) : (
-              tickets.map((ticket) => {
+              <View style={[styles.mapImage, styles.noMap]}>
+                <ThemedText themeColor="textSecondary">
+                  No venue map uploaded for this event.
+                </ThemedText>
+              </View>
+            )}
+          </View>
+
+          {/* Tickets */}
+          <ThemedText style={styles.sectionTitle}>Tickets</ThemedText>
+
+          {tickets.length === 0 ? (
+            <ThemedText themeColor="textSecondary">
+              No tickets available yet.
+            </ThemedText>
+          ) : (
+            <View style={styles.cards}>
+              {tickets.map((ticket) => {
                 const label = salesLabel(ticket);
                 const canBuy = isOnSale(ticket);
+
                 return (
-                  <ThemedView
-                    key={ticket.ticketId}
-                    type="backgroundElement"
-                    style={styles.card}
-                  >
-                    <ThemedText>{ticket.name}</ThemedText>
-                    <ThemedText type="small">
-                      {formatPrice(ticket.ticketPrice)}
-                    </ThemedText>
-                    {label ? (
-                      <ThemedText type="small">{label}</ThemedText>
-                    ) : null}
-                    <Pressable
+                  <View key={ticket.ticketId} style={styles.card}>
+                    <View style={styles.cardIcon}>
+                      <Ionicons
+                        name="ticket-outline"
+                        size={46}
+                        color={PURPLE}
+                      />
+                    </View>
+
+                    <View style={styles.cardInfo}>
+                      <ThemedText style={styles.cardName} numberOfLines={1}>
+                        {ticket.name}
+                      </ThemedText>
+
+                      <ThemedText style={styles.cardSub}>
+                        {formatPrice(ticket.ticketPrice)}
+                      </ThemedText>
+
+                      {label ? (
+                        <ThemedText style={styles.cardSub}>{label}</ThemedText>
+                      ) : null}
+                    </View>
+
+                    <BuyButton
                       disabled={!canBuy}
+                      label={`Buy ${ticket.name}`}
                       onPress={() =>
                         router.push({
                           pathname: "/buy",
@@ -209,75 +321,18 @@ export default function VenueMapScreen() {
                           },
                         })
                       }
-                      style={({ pressed }) => [
-                        styles.buy,
-                        !canBuy && styles.buy,
-                        pressed && styles.buy,
-                      ]}
-                    >
-                      <ThemedText>Buy</ThemedText>
-                    </Pressable>
-                  </ThemedView>
+                    />
+                  </View>
                 );
-              })
-            )}
+              })}
+            </View>
+          )}
 
-            {/* Tables */}
-            {/* {event.tables.length > 0 ? (
-              <>
-                <ThemedText style={[styles.sectionTitle, styles.sectionGap]}>
-                  Tables
-                </ThemedText>
-                <View style={styles.cards}>
-                  {event.tables.map((table) => {
-                    const isFull = table.seatsTaken >= table.seats;
-                    return (
-                      <View key={table.id} style={styles.card}>
-                        <Image
-                          source={require("../../../assets/images/table-icon.png")}
-                          style={[
-                            styles.tableIcon,
-                            isFull && styles.tableIconFull,
-                          ]}
-                          resizeMode="contain"
-                        />
-                        <View style={styles.cardInfo}>
-                          <ThemedText
-                            style={[
-                              styles.cardName,
-                              isFull && { color: MUTED },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {table.name}
-                          </ThemedText>
-                          <ThemedText
-                            style={[styles.cardSub, isFull && { color: MUTED }]}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.85}
-                          >
-                            {table.seatsTaken}/{table.seats} seats ·{" "}
-                            {formatPeso(table.pricePerSeat)} each
-                          </ThemedText>
-                        </View>
-                        <BuyButton
-                          disabled={isFull}
-                          label={
-                            isFull
-                              ? `${table.name} is full`
-                              : `Buy ${table.name}`
-                          }
-                          onPress={() => handleBuy(table.id)}
-                        />
-                      </View>
-                    );
-                  })}
-                </View>
-              </>
-            ) : null} */}
-          </ScrollView>
-        )}
+          {/* Tables */}
+          {/*
+            Needs BackEnd 
+          */}
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -303,65 +358,85 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: "800",
   },
-  notFound: { textAlign: "center", marginTop: 64, fontSize: 16 },
+  notFound: {
+    textAlign: "center",
+    marginTop: 64,
+    fontSize: 16,
+  },
 
   content: {
     paddingHorizontal: MARGIN,
-    paddingTop: 4,
+    paddingTop: 16,
     paddingBottom: 40,
   },
 
   // Map
   mapFrame: {
-    width: "100%", // The size depends on the size of the map
-    alignSelf: "center",
+    marginHorizontal: 3,
     borderWidth: 1.5,
     borderColor: PURPLE,
     borderRadius: Radius.large,
     overflow: "hidden",
     backgroundColor: WHITE,
   },
-  mapImage: { width: "100%", height: 200, borderRadius: 12 },
-  noMap: { alignItems: "center", justifyContent: "center" },
+  mapImage: {
+    width: "100%",
+    aspectRatio: 3 / 2, // fallback; the photo uses mapRatio once it loads
+  },
+  noMap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   // Sections
   sectionTitle: {
-    marginTop: 24,
-    marginBottom: 10,
+    marginTop: 22,
+    marginBottom: 20,
     marginLeft: 3,
     color: PURPLE,
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: "700",
   },
-  sectionGap: { marginTop: 32 },
-  cards: { gap: 14 },
+  sectionGap: { marginTop: 22 },
+  cards: { gap: 18 },
 
   // Ticket / table card
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
-    minHeight: 50,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    minHeight: 84,
+    paddingLeft: 13,
+    paddingRight: 19,
     borderRadius: Radius.medium,
     borderWidth: 1,
     borderColor: BORDER,
-    backgroundColor: WHITE,
   },
-  tableIcon: { width: ICON_SIZE, height: ICON_SIZE },
-  tableIconFull: { opacity: 0.4 },
-  cardInfo: { flex: 1 },
-  cardName: { fontSize: 14, fontWeight: "700" },
-  cardSub: { fontSize: 12, color: MUTED, marginTop: 0 },
+  cardIcon: {
+    width: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardInfo: {
+    flex: 1,
+    marginLeft: 14,
+    marginRight: 8,
+  },
+  cardName: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  cardSub: {
+    fontSize: 13,
+    color: "#77737F",
+  },
 
   // Buy
   buy: {
+    width: 66,
+    height: 28,
+    borderRadius: Radius.medium,
     backgroundColor: PURPLE,
-    borderRadius: Radius.small,
-    paddingHorizontal: 20,
-    paddingVertical: 5,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -369,8 +444,9 @@ const styles = StyleSheet.create({
   buyText: {
     color: WHITE,
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: "700",
   },
-  buyTextDisabled: { color: WHITE },
+  buyTextDisabled: { color: "#EDEDEF" },
   pressed: { opacity: 0.85 },
 });

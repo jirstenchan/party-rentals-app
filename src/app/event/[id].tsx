@@ -16,11 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius } from "@/constants/theme";
-import {
-  EventDetailDto,
-  EventTicketDto,
-  fetchEvent
-} from "@/lib/events-api";
+import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
 
 const PURPLE = BrandColors.purple;
 const BORDER = BrandColors.border;
@@ -180,6 +176,7 @@ export default function EventDetailsScreen() {
 
           <ThemedText style={styles.headerTitle}>EVENT DETAILS</ThemedText>
 
+          {/* Heart Icon - Saved Events */}
           <Pressable
             onPress={() => setIsFavorite((v) => !v)}
             hitSlop={12}
