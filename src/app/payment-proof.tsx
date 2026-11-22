@@ -1,5 +1,6 @@
-import { useFocusEffect } from "expo-router/react-navigation";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,39 +9,80 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  View,
 } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
-import { fetchTicket, TicketDetailDto } from "@/lib/events-api";
-import { getProofDraft } from "@/lib/payment-draft";
+import { BrandColors, Colors, Radius, Spacing } from "@/constants/theme";
+import {
+  EventDetailDto,
+  EventDto,
+  fetchEvent,
+  fetchTicket,
+  TicketDetailDto,
+} from "@/lib/events-api";
+
+// Theme colors
+const PURPLE = BrandColors.purple;
+const BORDER = BrandColors.border;
+const MUTED = BrandColors.muted;
+const BLACK = BrandColors.black;
+const WHITE = BrandColors.white;
+const PLACEHOLDER_BG = Colors.light.backgroundElement;
+
+// Not in the theme yet
+const CIRCLE_BG = "#F1EDFB";
+const ORANGE = "#E08A0B";
+
+// Font sizes (same values as the Event Details UI in theme.ts)
+const FontSize = {
+  confirmTitle: 32,
+  titleText: 20,
+  ctaText: 18,
+  cardTitle: 16,
+  host: 14,
+  detailLine: 14,
+  notFound: 12,
+} as const;
+
+const PARTY_ICON = require("@/assets/images/home/party-icon.png");
 
 const formatPrice = (price: number) =>
-  price === 0 ? "Free" : `$${price.toFixed(2)}`;
+  price === 0 ? "Free" : `₱ ${price.toLocaleString("en-PH")}`;
 
-const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, {
-    weekday: "long",
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", {
+    weekday: "short",
     month: "long",
     day: "numeric",
+    year: "numeric",
+  });
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
   });
 
 export default function PaymentProofScreen() {
+  const router = useRouter();
   const { ticketId, paymentRequired: paymentRequiredParam } =
     useLocalSearchParams<{
       ticketId: string;
       paymentRequired?: string;
     }>();
   const paymentRequired = paymentRequiredParam !== "false";
-  const proof = getProofDraft();
-
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
+  const [event, setEvent] = useState<EventDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Block Android hardware back button on this screen
   useFocusEffect(
@@ -50,11 +92,36 @@ export default function PaymentProofScreen() {
     }, []),
   );
 
+  // Fetch the ticket, then the full event (for the host details).
   useEffect(() => {
-    fetchTicket(ticketId)
-      .then(setTicket)
-      .catch(() => setTicket(null))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const t = await fetchTicket(ticketId);
+        if (cancelled) return;
+        setTicket(t);
+
+        // The host name only comes with the full event. If this fails we
+        // still show everything else.
+        try {
+          const ev = await fetchEvent(t.eventId);
+          if (!cancelled) setEvent(ev);
+        } catch {}
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Something went wrong.",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [ticketId]);
 
   const goHome = () => {
@@ -62,110 +129,392 @@ export default function PaymentProofScreen() {
     router.replace("/");
   };
 
+  const viewEventDetails = () => {
+    if (!ticket) return;
+    // TODO: adjust to your event details route
+    router.push({
+      pathname: "/event/[id]" as any,
+      params: { id: ticket.eventId },
+    });
+  };
+
+  // Use the full event when we have it, otherwise the one on the ticket.
+  const details: EventDto | null = event ?? ticket?.event ?? null;
+  const hostName: string | undefined = event?.host?.name;
+
+  const timeText =
+    details && details.endTime
+      ? `${formatTime(details.startTime)} - ${formatTime(details.endTime)}`
+      : details
+        ? formatTime(details.startTime)
+        : "";
+
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: paymentRequired ? "Payment sent" : "Ticket confirmed",
-          headerBackVisible: false,
-          gestureEnabled: false,
-        }}
-      />
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedView type="backgroundElement" style={styles.card}>
-          <ThemedText style={styles.cardTitle}>
-            {paymentRequired
-              ? "The host will review your payment"
-              : "Your free ticket is confirmed"}
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
+
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable
+            onPress={goHome}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <Ionicons name="close" size={32} color={PURPLE} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
+          {/* Party icon */}
+          <View style={styles.iconCircle}>
+            <Image
+              source={PARTY_ICON}
+              style={styles.partyIcon}
+              resizeMode="contain"
+            />
+          </View>
+
+          <ThemedText style={styles.confirmTitle}>
+            Reservation Confirmed!
           </ThemedText>
-          <ThemedText type="small">
-            {paymentRequired
-              ? "You'll be notified once your booking is confirmed."
-              : "No payment is due for this ticket."}
+          <ThemedText style={styles.confirmSubtitle}>
+            You&apos;ve successfully booked a ticket!
           </ThemedText>
-        </ThemedView>
+          {paymentRequired ? (
+            <ThemedText style={styles.confirmNote}>
+              The host will review your payment.
+            </ThemedText>
+          ) : null}
 
-        {loading ? (
-          <ActivityIndicator style={styles.loading} />
-        ) : ticket ? (
-          <>
-            <ThemedText style={styles.sectionTitle}>Event</ThemedText>
-            <ThemedView type="backgroundElement" style={styles.card}>
-              <ThemedText type="subtitle">{ticket.event.name}</ThemedText>
-              <ThemedText type="small">
-                {formatDateTime(ticket.event.startTime)}
-              </ThemedText>
-              {ticket.event.location ? (
-                <ThemedText type="small">{ticket.event.location}</ThemedText>
-              ) : null}
-            </ThemedView>
-
-            <ThemedText style={styles.sectionTitle}>Ticket</ThemedText>
-            <ThemedView type="backgroundElement" style={styles.card}>
-              <ThemedText style={styles.cardTitle}>{ticket.name}</ThemedText>
-              <ThemedText type="small">
-                {formatPrice(ticket.ticketPrice)}
-              </ThemedText>
-            </ThemedView>
-          </>
-        ) : null}
-
-        {paymentRequired ? (
-          <>
-            <ThemedText style={styles.sectionTitle}>Proof of payment</ThemedText>
-            <ThemedView type="backgroundElement" style={styles.card}>
-              {proof ? (
-                <>
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color={PURPLE}
+              style={styles.loading}
+            />
+          ) : ticket && details ? (
+            <>
+              {/* Event card */}
+              <View style={styles.eventCard}>
+                {details.eventImageUrl ? (
                   <Image
-                    source={{ uri: proof.uri }}
-                    style={styles.proof}
-                    resizeMode="contain"
+                    source={{ uri: details.eventImageUrl }}
+                    style={styles.poster}
+                    resizeMode="cover"
                   />
-                  <ThemedText type="small" numberOfLines={1}>
-                    {proof.name}
-                  </ThemedText>
-                </>
-              ) : null}
-            </ThemedView>
-          </>
-        ) : null}
+                ) : (
+                  <View style={[styles.poster, styles.posterPlaceholder]}>
+                    <Ionicons name="image-outline" size={28} color={MUTED} />
+                  </View>
+                )}
 
-        <Pressable
-          onPress={goHome}
-          style={({ pressed }) => [
-            styles.homeButton,
-            pressed && { opacity: 0.8 },
+                <View style={styles.eventInfo}>
+                  <ThemedText style={styles.eventTitle} numberOfLines={2}>
+                    {details.name}
+                  </ThemedText>
+
+                  {hostName ? (
+                    <ThemedText style={styles.hostText}>
+                      Hosted by: {hostName}
+                    </ThemedText>
+                  ) : null}
+
+                  {/* Date */}
+                  <View style={styles.infoRow}>
+                    <Ionicons name="calendar" size={24} color={PURPLE} />
+                    <ThemedText style={[styles.infoMain, styles.flex]}>
+                      {formatDate(details.startTime)}
+                    </ThemedText>
+                  </View>
+
+                  {/* Time */}
+                  <View style={styles.infoRow}>
+                    <Ionicons
+                      name="stopwatch-outline"
+                      size={24}
+                      color={PURPLE}
+                    />
+                    <ThemedText style={[styles.infoMain, styles.flex]}>
+                      {timeText}
+                    </ThemedText>
+                  </View>
+
+                  {/* Location */}
+                  {details.location ? (
+                    <View style={styles.infoRow}>
+                      <Ionicons name="location" size={24} color={PURPLE} />
+                      <ThemedText style={[styles.infoMain, styles.flex]}>
+                        {details.location}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+
+                  {/* Price x persons */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.pesoCircle}>
+                      <MaterialCommunityIcons
+                        name="currency-php"
+                        size={12}
+                        color={WHITE}
+                      />
+                    </View>
+                    <ThemedText style={[styles.infoMain, styles.flex]}>
+                      {formatPrice(ticket.ticketPrice)} × 1 person
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+
+              {/* Ticket card (same as Venue Map) */}
+              <View style={styles.ticketCard}>
+                <View style={styles.ticketIcon}>
+                  <Ionicons name="ticket-outline" size={46} color={PURPLE} />
+                </View>
+
+                <View style={styles.ticketInfo}>
+                  <ThemedText style={styles.ticketTitle} numberOfLines={1}>
+                    {ticket.name}
+                  </ThemedText>
+                  <ThemedText style={styles.ticketPrice}>
+                    {formatPrice(ticket.ticketPrice)}
+                  </ThemedText>
+                </View>
+              </View>
+            </>
+          ) : error ? (
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
+          ) : null}
+        </ScrollView>
+
+        {/* Footer */}
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: insets.bottom + Spacing.three },
           ]}
         >
-          <ThemedText style={styles.homeButtonText}>Back to home</ThemedText>
-        </Pressable>
-      </ScrollView>
+          {ticket ? (
+            <Pressable
+              onPress={viewEventDetails}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                pressed && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="View event details"
+            >
+              <ThemedText style={styles.ctaButtonText}>
+                View Event Details
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            onPress={goHome}
+            hitSlop={12}
+            style={styles.homeButton}
+            accessibilityRole="button"
+            accessibilityLabel="Back to home"
+          >
+            <ThemedText style={styles.homeText}>Back to Home</ThemedText>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: WHITE,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  loading: {
+    marginTop: Spacing.five,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.one,
+    paddingBottom: Spacing.one,
+  },
+
+  // Content
   content: {
-    padding: Spacing.three,
-    gap: Spacing.two,
-    paddingBottom: Spacing.five,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.one,
+    paddingBottom: Spacing.three,
+    gap: Spacing.three,
   },
-  loading: { marginTop: Spacing.three },
-  sectionTitle: { fontWeight: "700", marginTop: Spacing.two },
-  card: {
-    padding: Spacing.three,
-    borderRadius: Spacing.three,
-    gap: Spacing.one,
-  },
-  cardTitle: { fontWeight: "600" },
-  proof: { width: "100%", height: 220 },
-  homeButton: {
-    marginTop: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.two,
-    backgroundColor: "#208AEF",
+
+  // Party icon + confirmation text
+  iconCircle: {
+    alignSelf: "center",
+    width: 160,
+    height: 160,
+    borderRadius: Radius.full,
+    backgroundColor: CIRCLE_BG,
     alignItems: "center",
+    justifyContent: "center",
   },
-  homeButtonText: { color: "#fff", fontWeight: "600" },
+  partyIcon: {
+    width: 90,
+    height: 90,
+  },
+  confirmTitle: {
+    color: BLACK,
+    fontSize: 28,
+    lineHeight: 20,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  confirmSubtitle: {
+    color: BLACK,
+    fontSize: FontSize.cardTitle,
+    textAlign: "center",
+    marginTop: -Spacing.two,
+  },
+  confirmNote: {
+    color: ORANGE,
+    fontSize: FontSize.detailLine,
+    textAlign: "center",
+    marginTop: -Spacing.two,
+  },
+
+  // Event card
+  eventCard: {
+    flexDirection: "row",
+    padding: Spacing.three,
+    gap: Spacing.three,
+    borderRadius: Radius.large,
+    borderWidth: 1.5,
+    borderColor: PURPLE,
+    backgroundColor: WHITE,
+  },
+  poster: {
+    width: 105,
+    height: 160,
+    borderRadius: Radius.medium,
+  },
+  posterPlaceholder: {
+    backgroundColor: PLACEHOLDER_BG,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eventInfo: {
+    flex: 1,
+    gap: Spacing.two,
+  },
+  eventTitle: {
+    color: BLACK,
+    fontSize: FontSize.titleText,
+    lineHeight: 26,
+    fontWeight: "800",
+  },
+  hostText: {
+    color: BLACK,
+    fontSize: FontSize.host,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.two,
+  },
+  infoMain: {
+    color: BLACK,
+    fontSize: FontSize.detailLine,
+  },
+  pesoCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: Radius.full,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Ticket card (same as Venue Map)
+  ticketCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 84,
+    paddingLeft: 13,
+    paddingRight: 19,
+    borderRadius: Radius.medium,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: WHITE,
+  },
+  ticketIcon: {
+    width: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ticketInfo: {
+    flex: 1,
+    marginLeft: 14,
+    marginRight: 8,
+  },
+  ticketTitle: {
+    color: BLACK,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  ticketPrice: {
+    color: "#77737F",
+    fontSize: 13,
+  },
+
+  // Footer
+  footer: {
+    paddingHorizontal: Spacing.three,
+    backgroundColor: WHITE,
+  },
+  ctaButton: {
+    height: 55,
+    borderRadius: Radius.large,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaButtonText: {
+    color: WHITE,
+    fontSize: FontSize.ctaText,
+    fontWeight: "600",
+  },
+  homeButton: {
+    alignSelf: "center",
+    marginTop: Spacing.three,
+  },
+  homeText: {
+    color: PURPLE,
+    fontSize: 16,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+
+  // Other
+  errorText: {
+    textAlign: "center",
+    marginTop: Spacing.five,
+    color: MUTED,
+    fontSize: FontSize.notFound,
+  },
+  pressed: {
+    opacity: 0.85,
+  },
 });
