@@ -41,7 +41,7 @@ const HEADER_ICONS = [
     icon: "notifications-outline",
     label: "Notifications",
   },
-  { id: "saved", icon: "heart-outline", label: "Saved events" },
+  // { id: "saved", icon: "heart-outline", label: "Saved events" }, - remove this if saved (heart icon) is needed
 ] as const;
 
 // Format the API date for the event card.
@@ -247,9 +247,11 @@ export default function HomeScreen() {
                       {item.name}
                     </ThemedText>
 
+                    {/* Heart Icon - Saved Events*/}
                     <Pressable
                       onPress={() => toggleFavorite(item.id)}
                       hitSlop={12}
+                      style={{ paddingTop: 1, paddingRight: 4 }}
                       accessibilityRole="button"
                       accessibilityLabel={
                         isFavorite ? "Remove from saved" : "Save event"
