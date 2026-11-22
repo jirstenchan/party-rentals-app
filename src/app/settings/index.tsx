@@ -1,4 +1,3 @@
-import { Radius } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -8,10 +7,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoutConfirmationModal } from "@/components/settings/logout-confirmation-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Spacing } from "@/constants/theme";
+import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-// Sections and rows (UI only for now)
+// Account rows lead to the same personal details and verification flow as the website.
 const SECTIONS = [
   {
     title: "Account",
@@ -20,6 +19,11 @@ const SECTIONS = [
         id: "personal",
         label: "Personal Information",
         icon: "person-outline",
+      },
+      {
+        id: "verification",
+        label: "Account Verification",
+        icon: "id-card-outline",
       },
     ],
   },
@@ -77,7 +81,6 @@ export default function SettingsScreen() {
           <ThemedText style={styles.headerTitle}>SETTINGS</ThemedText>
         </View>
 
-        {/* TODO: hook up each row to its screen */}
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
@@ -98,6 +101,13 @@ export default function SettingsScreen() {
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={item.label}
+                  onPress={
+                    item.id === "personal"
+                      ? () => router.push("/settings/personal-information")
+                      : item.id === "verification"
+                        ? () => router.push("/settings/verify-identity")
+                        : undefined
+                  }
                 >
                   <Ionicons name={item.icon} size={22} color={theme.text} />
 
