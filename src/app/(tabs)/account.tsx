@@ -171,12 +171,14 @@ export default function AccountScreen() {
           </View>
 
           {/* Quick actions */}
-          {/* TODO: hook up each action to its screen */}
           <View style={styles.actionsRow}>
             {QUICK_ACTIONS.map((a) => (
               <Pressable
                 key={a.id}
                 style={styles.action}
+                onPress={
+                  a.id === "tickets" ? () => router.push("/my-tickets") : undefined
+                }
                 accessibilityRole="button"
                 accessibilityLabel={a.label}
               >

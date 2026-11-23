@@ -6,6 +6,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { DateTimeField } from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
 import { ImagePickerField } from "@/components/event/image-picker-field";
+import { TableDraftList } from "@/components/event/table-draft-list";
 import { TicketDraftList } from "@/components/event/ticket-draft-list";
 
 import { TableModal } from "@/components/event/table-modal";
@@ -60,6 +61,7 @@ export function CreateEventForm({ onCreated }: Props) {
     setStartTime(now);
     setEndTime(new Date(now.getTime() + HOUR));
     setTickets([]);
+    setTables([]);
     setMap(null);
     setQrPayment(null);
     setEventGraphicImage(null);
@@ -143,7 +145,7 @@ export function CreateEventForm({ onCreated }: Props) {
         eventImageUrl,
       });
 
-      const results = await Promise.allSettled(
+      const ticketResults = await Promise.allSettled(
         tickets.map((ticket) =>
           addTicket({
             eventId: created.id,
@@ -152,12 +154,7 @@ export function CreateEventForm({ onCreated }: Props) {
         ),
       );
 
-      //call to submit tables
-      const tableResults = await Promise.allSettled(
-        tables.map((t) => addTable({ eventId: created.id, ...t })),
-      );
-
-      if (results.some((r) => r.status === "rejected")) {
+      if (ticketResults.some((r) => r.status === "rejected")) {
         // Every event needs a ticket, so undo the event and keep the form filled in
         await deleteEvent(created.id).catch(() => {});
         const cleanupSucceeded = await cleanupUploadedImages();
@@ -168,13 +165,18 @@ export function CreateEventForm({ onCreated }: Props) {
         return;
       }
 
+      // Tables are optional, so they are only submitted once tickets succeed
+      const tableResults = await Promise.allSettled(
+        tables.map((table) => addTable({ eventId: created.id, ...table })),
+      );
+
       if (tableResults.some((r) => r.status === "rejected")) {
-        // Tables are optional, so we don't delete the event if they fail
-        const cleanupSucceeded = await cleanupUploadedImages();
+        // The event exists and uses the uploaded images, so don't clean them up
         setStatus(
-          "Couldn't save the tables. The event was created, but try again." +
-            (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
+          "The event was created, but some tables couldn't be saved. You can add them again later.",
         );
+        resetForm();
+        await onCreated();
         return;
       }
 
@@ -205,7 +207,10 @@ export function CreateEventForm({ onCreated }: Props) {
     });
 
   const isError =
-    !!status && status !== "Creating..." && !status.startsWith("Created:");
+    !!status &&
+    status !== "Creating..." &&
+    !status.startsWith("Created:") &&
+    !status.startsWith("The event was created");
 
   return (
     <View style={styles.form}>
@@ -353,7 +358,7 @@ export function CreateEventForm({ onCreated }: Props) {
         cardStyle={styles.capacityCard}
       />
 
-      {/* Venue map placeholder */}
+      {/* Venue map */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Venue Map</Text>
         <ImagePickerField
@@ -364,12 +369,6 @@ export function CreateEventForm({ onCreated }: Props) {
           showPreview={false}
         />
       </View>
-
-      <TableModal
-        visible={tableModalVisible}
-        onClose={() => setTableModalVisible(false)}
-        onSave={(table) => setTables((prev) => [...prev, table])}
-      />
 
       <ImagePickerField
         value={map}
@@ -390,6 +389,7 @@ export function CreateEventForm({ onCreated }: Props) {
           </View>
         )}
       </ImagePickerField>
+
       {/* QR Payment */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>QR Payment</Text>
@@ -424,7 +424,7 @@ export function CreateEventForm({ onCreated }: Props) {
         )}
       </ImagePickerField>
 
-      {/* Real ticket drafts */}
+      {/* Ticket drafts */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Tickets</Text>
 
@@ -442,7 +442,7 @@ export function CreateEventForm({ onCreated }: Props) {
         }
       />
 
-      {/* Real table drafts */}
+      {/* Table drafts */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Tables</Text>
 
@@ -451,10 +451,10 @@ export function CreateEventForm({ onCreated }: Props) {
         </Pressable>
       </View>
 
-      <TicketDraftList
-        tickets={tickets}
+      <TableDraftList
+        tables={tables}
         onRemove={(index) =>
-          setTickets((previous) =>
+          setTables((previous) =>
             previous.filter((_, tableIndex) => tableIndex !== index),
           )
         }
@@ -476,20 +476,29 @@ export function CreateEventForm({ onCreated }: Props) {
         <Text style={styles.createButtonText}>Create Event</Text>
       </Pressable>
 
-      <TicketModal
-        visible={ticketModalVisible}
-        onClose={() => setTicketModalVisible(false)}
-        onSave={(ticket) => setTickets((previous) => [...previous, ticket])}
-      />
+      {/* Modals live in an absolute host so they don't add gap below the button */}
+      <View style={styles.modalHost} pointerEvents="box-none">
+        <TicketModal
+          visible={ticketModalVisible}
+          onClose={() => setTicketModalVisible(false)}
+          onSave={(ticket) => setTickets((previous) => [...previous, ticket])}
+        />
 
-      <ConfirmCreateModal
-        visible={confirmVisible}
-        onCancel={() => setConfirmVisible(false)}
-        onConfirm={() => {
-          setConfirmVisible(false);
-          void handleCreate();
-        }}
-      />
+        <TableModal
+          visible={tableModalVisible}
+          onClose={() => setTableModalVisible(false)}
+          onSave={(table) => setTables((previous) => [...previous, table])}
+        />
+
+        <ConfirmCreateModal
+          visible={confirmVisible}
+          onCancel={() => setConfirmVisible(false)}
+          onConfirm={() => {
+            setConfirmVisible(false);
+            void handleCreate();
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -502,6 +511,11 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  modalHost: {
+    position: "absolute",
+    width: 0,
+    height: 0,
   },
   titleRow: {
     flexDirection: "row",
@@ -546,7 +560,6 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 4,
   },
-  // Date
   cardLabel: {
     fontSize: 16,
     fontWeight: "700",
@@ -597,13 +610,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 6,
   },
-  tablesHeader: {
-    marginTop: 18,
-  },
-  tableIcon: {
-    width: 44,
-    height: 44,
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
@@ -626,39 +632,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     color: "#85858F",
-  },
-  tableCard: {
-    borderWidth: 1.5,
-    borderColor: "#D4D4D4",
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    minHeight: 84,
-  },
-  listTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
-  },
-  listSub: {
-    fontSize: 12,
-    color: "#7A7A7A",
-    marginTop: 4,
-  },
-  editButton: {
-    backgroundColor: PURPLE,
-    borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-  },
-  editText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
   },
   status: {
     color: "#000",
@@ -686,177 +659,18 @@ const styles = StyleSheet.create({
   },
   mapImage: {
     width: "100%",
-    aspectRatio: 16 / 9, // match your aspect prop / placeholder height
+    aspectRatio: 16 / 9,
     borderRadius: 8,
   },
   qrImage: {
     width: "100%",
-    aspectRatio: 1 / 1, // match your aspect prop / placeholder height
+    aspectRatio: 1 / 1,
     borderRadius: 8,
   },
   eventImage: {
     width: COVER_PHOTO_SIZE,
     height: COVER_PHOTO_SIZE,
-    aspectRatio: 1, // match your aspect prop / placeholder height
+    aspectRatio: 1,
     borderRadius: 8,
   },
 });
-
-// Tyrone's
-// import { useState } from "react";
-// import { Button, StyleSheet } from "react-native";
-
-// import { ThemedText } from "@/components/themed-text";
-// import { ThemedView } from "@/components/themed-view";
-// import { DateTimeField } from "@/components/event/date-time-field";
-// import { FormInput } from "@/components/event/form-input";
-// import { TicketDraftList } from "@/components/event/ticket-draft-list";
-// import { TicketModal } from "@/components/event/ticket-modal";
-// import { Spacing } from "@/constants/theme";
-// import { createEvent, deleteEvent } from "@/data/event";
-// import { problemFor } from "@/data/problem";
-// import { addTicket, NewTicket } from "@/data/ticket";
-
-// const HOUR = 60 * 60 * 1000;
-
-// type Props = {
-//   onCreated: () => void | Promise<void>;
-// };
-
-// export function CreateEventForm({ onCreated }: Props) {
-//   const [name, setName] = useState("");
-//   const [description, setDescription] = useState("");
-//   const [location, setLocation] = useState("");
-//   const [capacity, setCapacity] = useState("");
-//   const [startTime, setStartTime] = useState(new Date());
-//   const [endTime, setEndTime] = useState(new Date(Date.now() + HOUR));
-//   const [tickets, setTickets] = useState<NewTicket[]>([]);
-//   const [ticketModalVisible, setTicketModalVisible] = useState(false);
-//   const [status, setStatus] = useState("");
-
-//   function resetForm() {
-//     const now = new Date();
-//     setName("");
-//     setDescription("");
-//     setLocation("");
-//     setCapacity("");
-//     setStartTime(now);
-//     setEndTime(new Date(now.getTime() + HOUR));
-//     setTickets([]);
-//   }
-
-//   async function handleCreate() {
-//     const capacityNumber = Number(capacity);
-
-//     if (
-//       !name.trim() ||
-//       !description.trim() ||
-//       !location.trim() ||
-//       !capacity.trim()
-//     ) {
-//       setStatus("Please fill in all fields.");
-//       return;
-//     }
-//     if (!Number.isInteger(capacityNumber) || capacityNumber <= 0) {
-//       setStatus("Capacity must be a positive whole number.");
-//       return;
-//     }
-//     if (endTime <= startTime) {
-//       setStatus("End time must be after start time.");
-//       return;
-//     }
-//     if (tickets.length === 0) {
-//       setStatus("Add at least one ticket.");
-//       return;
-//     }
-
-//     try {
-//       setStatus("Creating...");
-
-//       const created = await createEvent({
-//         name: name.trim(),
-//         description: description.trim(),
-//         location: location.trim(),
-//         capacity: capacityNumber,
-//         startTime: startTime.toISOString(),
-//         endTime: endTime.toISOString(),
-//         status: "published",
-//       });
-
-//       const results = await Promise.allSettled(
-//         tickets.map((t) => addTicket({ eventId: created.id, ...t })),
-//       );
-
-//       if (results.some((r) => r.status === "rejected")) {
-//         // Every event needs a ticket, so undo the event and keep the form filled in
-//         await deleteEvent(created.id).catch(() => {});
-//         setStatus(
-//           "Couldn't save the tickets, so the event wasn't created. Try again.",
-//         );
-//         return;
-//       }
-
-//       setStatus(`Created: ${created.name}`);
-//       resetForm();
-//       await onCreated();
-//     } catch (e) {
-//       setStatus("Create failed: " + problemFor(e));
-//     }
-//   }
-
-//   return (
-//     <ThemedView style={styles.form}>
-//       <FormInput value={name} onChangeText={setName} placeholder="Event Name" />
-//       <FormInput
-//         value={description}
-//         onChangeText={setDescription}
-//         placeholder="Description"
-//         multiline
-//       />
-//       <FormInput
-//         value={location}
-//         onChangeText={setLocation}
-//         placeholder="Event Location"
-//       />
-//       <FormInput
-//         value={capacity}
-//         onChangeText={(v) => setCapacity(v.replace(/[^0-9]/g, ""))}
-//         placeholder="Capacity"
-//         keyboardType="numeric"
-//       />
-
-//       <DateTimeField label="Starts" value={startTime} onChange={setStartTime} />
-//       <DateTimeField label="Ends" value={endTime} onChange={setEndTime} />
-
-//       <TicketDraftList
-//         tickets={tickets}
-//         onRemove={(i) =>
-//           setTickets((prev) => prev.filter((_, idx) => idx !== i))
-//         }
-//       />
-
-//       <Button
-//         title="+ Add ticket"
-//         onPress={() => setTicketModalVisible(true)}
-//       />
-//       <Button title="Create test event" onPress={handleCreate} />
-
-//       {status ? <ThemedText>{status}</ThemedText> : null}
-
-//       <TicketModal
-//         visible={ticketModalVisible}
-//         onClose={() => setTicketModalVisible(false)}
-//         onSave={(ticket) => setTickets((prev) => [...prev, ticket])}
-//       />
-//     </ThemedView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   form: {
-//     gap: Spacing.three,
-//     alignItems: "center",
-//     paddingHorizontal: Spacing.four,
-//     paddingVertical: Spacing.six,
-//   },
-// });

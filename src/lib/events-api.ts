@@ -128,6 +128,13 @@ export type TicketReservationDto = {
   paymentRequired: boolean;
 };
 
+export type TableReservationDto = {
+  reservationId: string;
+  reservationItemId: string;
+  ticketId: string;
+  paymentRequired: boolean;
+};
+
 export async function createTicketReservation(
   ticketId: string,
 ): Promise<TicketReservationDto> {
@@ -148,6 +155,29 @@ export async function createTicketReservation(
     );
   }
   const result: { data: TicketReservationDto } = await res.json();
+  return result.data;
+}
+
+export async function createTableReservation(
+  tableId: string,
+): Promise<TableReservationDto> {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}/api/reservations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ tableId }),
+  });
+
+  if (!res.ok) {
+    throw await getApiError(
+      res,
+      "Couldn't reserve this table. Please try again.",
+    );
+  }
+  const result: { data: TableReservationDto } = await res.json();
   return result.data;
 }
 

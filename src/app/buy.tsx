@@ -21,6 +21,7 @@ import { BrandColors, Colors, Radius, Spacing } from "@/constants/theme";
 import {
   createTicketReservation,
   EventDetailDto,
+  EventTableDto,
   EventTicketDto,
   fetchEvent,
 } from "@/lib/events-api";
@@ -70,14 +71,17 @@ const formatTime = (iso: string) =>
 
 export default function BuyScreen() {
   const router = useRouter();
-  const { eventId, ticketId } = useLocalSearchParams<{
+  const { eventId, ticketId, tableId } = useLocalSearchParams<{
     eventId: string;
     ticketId: string;
+    tableId: string;
   }>();
   const insets = useSafeAreaInsets();
 
   const [event, setEvent] = useState<EventDetailDto | null>(null);
   const [ticket, setTicket] = useState<EventTicketDto | null>(null);
+  const [table, setTable] = useState<EventTableDto | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reserving, setReserving] = useState(false);
@@ -134,6 +138,7 @@ export default function BuyScreen() {
         setTicket(
           data.tickets?.find((item) => item.ticketId === ticketId) ?? null,
         );
+        setTable(data.tables?.find((item) => item.tableId === tableId) ?? null);
       } catch (err) {
         if (!cancelled) {
           setError(
