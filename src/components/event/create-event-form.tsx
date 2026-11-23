@@ -442,28 +442,23 @@ export function CreateEventForm({ onCreated }: Props) {
         }
       />
 
-      {/* TODO: tables remain a visual placeholder. */}
-      <View style={[styles.sectionHeader, styles.tablesHeader]}>
+      {/* Real table drafts */}
+      <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Tables</Text>
-        <Text style={styles.sectionAction}>+ Add Tables</Text>
+
+        <Pressable onPress={() => setTableModalVisible(true)}>
+          <Text style={styles.sectionAction}>+ Add Tables</Text>
+        </Pressable>
       </View>
 
-      <View style={styles.tableCard}>
-        <Image
-          source={require("../../../assets/images/table-icon.png")}
-          style={styles.tableIcon}
-          resizeMode="contain"
-        />
-
-        <View style={styles.flex}>
-          <Text style={styles.listTitle}>Table 1</Text>
-          <Text style={styles.listSub}>8 seats · ₱ 1,500 each</Text>
-        </View>
-
-        <View style={styles.editButton}>
-          <Text style={styles.editText}>Edit</Text>
-        </View>
-      </View>
+      <TicketDraftList
+        tickets={tickets}
+        onRemove={(index) =>
+          setTickets((previous) =>
+            previous.filter((_, tableIndex) => tableIndex !== index),
+          )
+        }
+      />
 
       {status ? (
         <Text style={[styles.status, isError && styles.statusError]}>
