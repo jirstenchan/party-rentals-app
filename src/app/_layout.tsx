@@ -43,6 +43,7 @@ function RootNavigator() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="event" />
             <Stack.Screen name="my-tickets" />
+            <Stack.Screen name="my-tables" />
             <Stack.Screen name="settings" />
           </Stack.Protected>
 

@@ -24,6 +24,7 @@ const PURPLE_TINT = "#F1EDFC";
 // Quick actions row (UI)
 const QUICK_ACTIONS = [
   { id: "tickets", label: "My Tickets", icon: "ticket-outline" },
+  { id: "tables", label: "My Tables", icon: "grid-outline" },
   { id: "events", label: "My Events", icon: "calendar-outline" },
   { id: "saved", label: "Saved", icon: "heart-outline" },
 ] as const;
@@ -68,7 +69,9 @@ export default function AccountScreen() {
             reservations.status === "fulfilled"
               ? new Set(
                   reservations.value
-                    .filter((r) => r.reservationStatus !== "Denied")
+                    .filter((r) =>
+                      r.reservationStatus === "Pending" || r.reservationStatus === "Confirmed",
+                    )
                     .map((r) => r.reservationId),
                 ).size
               : null,
@@ -177,7 +180,11 @@ export default function AccountScreen() {
                 key={a.id}
                 style={styles.action}
                 onPress={
-                  a.id === "tickets" ? () => router.push("/my-tickets") : undefined
+                  a.id === "tickets"
+                    ? () => router.push("/my-tickets")
+                    : a.id === "tables"
+                      ? () => router.push("/my-tables")
+                      : undefined
                 }
                 accessibilityRole="button"
                 accessibilityLabel={a.label}

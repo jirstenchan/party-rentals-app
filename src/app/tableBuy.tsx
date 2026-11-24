@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,16 +10,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
-import { EventDetailDto, EventTableDto, fetchEvent } from "@/lib/events-api";
+import { BrandColors, Spacing } from "@/constants/theme";
+import {
+  createTableReservation,
+  fetchEvent,
+  type EventDetailDto,
+} from "@/lib/events-api";
 
 const formatPrice = (price: number) =>
-  price === 0 ? "Free" : `$${price.toFixed(2)}`;
+  price === 0 ? "Free" : `₱${price.toLocaleString("en-PH")}`;
 
-export default function BuyScreen() {
+export default function TableBuyScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  console.log("buy params", params);
   const { eventId, tableId } = useLocalSearchParams<{
     eventId: string;
     tableId: string;
@@ -27,32 +29,52 @@ export default function BuyScreen() {
   const insets = useSafeAreaInsets();
 
   const [event, setEvent] = useState<EventDetailDto | null>(null);
-  const [table, setTable] = useState<EventTableDto | null>(null);
+  const table = event?.tables.find((item) => item.tableId === tableId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reserveError, setReserveError] = useState<string | null>(null);
+  const [reserving, setReserving] = useState(false);
+  const requestInProgress = useRef(false);
 
-  const [guests, setGuests] = useState<string[]>([]);
-  const [inputName, setInputName] = useState("");
+  async function reserve() {
+    if (!table || requestInProgress.current) return;
 
-  const isFull = table !== null && guests.length >= table.capacity;
-  const handleAddGuest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputName.trim() || isFull) return;
-
-    setGuests([...guests, inputName]);
-    setInputName(""); // Clear input
-  };
+    requestInProgress.current = true;
+    setReserving(true);
+    setReserveError(null);
+    try {
+      const booking = await createTableReservation(table.tableId);
+      if (
+        booking.reservationStatus === "Pending" &&
+        booking.paymentRequired &&
+        !booking.paymentSubmitted
+      ) {
+        router.replace({
+          pathname: "/payment",
+          params: {
+            itemType: "table",
+            reservationItemId: booking.reservationItemId,
+          },
+        });
+      } else {
+        router.replace("/my-tables");
+      }
+    } catch (err) {
+      setReserveError(
+        err instanceof Error ? err.message : "Couldn't reserve this table.",
+      );
+    } finally {
+      requestInProgress.current = false;
+      setReserving(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const e = await fetchEvent(eventId);
-        if (cancelled) return;
-        setEvent(e);
-        const tables = (e as EventDetailDto & { tables?: EventTableDto[] })
-          .tables;
-        setTable(tables?.find((t) => t.tableId === tableId) ?? null);
+        const result = await fetchEvent(eventId);
+        if (!cancelled) setEvent(result);
       } catch (err) {
         if (!cancelled)
           setError(
@@ -65,14 +87,14 @@ export default function BuyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [eventId, tableId]);
+  }, [eventId]);
 
   if (loading) return <ActivityIndicator style={styles.loading} />;
 
   if (!event || !table) {
     return (
       <ThemedView style={styles.container}>
-        <Stack.Screen options={{ title: "Buy table" }} />
+        <Stack.Screen options={{ headerShown: true, title: "Reserve table" }} />
         <ThemedText type="small" style={styles.center}>
           {error ?? "Table not found."}
         </ThemedText>
@@ -82,7 +104,7 @@ export default function BuyScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: "Buy table" }} />
+      <Stack.Screen options={{ headerShown: true, title: "Reserve table" }} />
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText style={styles.sectionTitle}>Event</ThemedText>
         <ThemedView type="backgroundElement" style={styles.card}>
@@ -96,7 +118,17 @@ export default function BuyScreen() {
         <ThemedView type="backgroundElement" style={styles.card}>
           <ThemedText style={styles.cardTitle}>{table.label}</ThemedText>
           <ThemedText type="small">{formatPrice(table.tablePrice)}</ThemedText>
+          {table.capacity !== null && (
+            <ThemedText type="small">
+              {table.capacity} {table.capacity === 1 ? "seat" : "seats"}
+            </ThemedText>
+          )}
         </ThemedView>
+        <ThemedText type="small" themeColor="textSecondary">
+          {table.tablePrice > 0
+            ? "Submit payment proof before the table hold expires. You can add guest names after the host approves."
+            : "You can add guest names once the host approves this reservation."}
+        </ThemedText>
       </ScrollView>
 
       <ThemedView
@@ -105,16 +137,28 @@ export default function BuyScreen() {
           { paddingBottom: insets.bottom + Spacing.three },
         ]}
       >
+        {reserveError && (
+          <ThemedText accessibilityRole="alert" style={styles.error}>
+            {reserveError}
+          </ThemedText>
+        )}
         <Pressable
-          onPress={() =>
-            router.push({ pathname: "/payment", params: { tableId } })
-          }
+          onPress={reserve}
+          disabled={reserving}
+          accessibilityRole="button"
+          accessibilityState={{ busy: reserving, disabled: reserving }}
           style={({ pressed }) => [
             styles.payButton,
-            pressed && { opacity: 0.8 },
+            (pressed || reserving) && { opacity: 0.8 },
           ]}
         >
-          <ThemedText style={styles.payButtonText}>Proceed to pay</ThemedText>
+          <ThemedText style={styles.payButtonText}>
+            {reserving
+              ? "Reserving…"
+              : table.tablePrice > 0
+                ? "Reserve and pay"
+                : "Request reservation"}
+          </ThemedText>
         </Pressable>
       </ThemedView>
     </ThemedView>
@@ -134,10 +178,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontWeight: "600" },
   footer: { paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
+  error: { color: BrandColors.error, marginBottom: Spacing.two },
   payButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,
-    backgroundColor: "#208AEF",
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
   },
   payButtonText: { color: "#fff", fontWeight: "600" },

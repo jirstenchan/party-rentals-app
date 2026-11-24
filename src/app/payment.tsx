@@ -23,8 +23,24 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Colors, Radius, Spacing } from "@/constants/theme";
 import { PickedImage, uploadProofImage } from "@/data/image";
-import { fetchTicket, submitPayment, TicketDetailDto } from "@/lib/events-api";
+import {
+  formatTableHoldTime,
+  tableHoldSeconds,
+  useTableHoldClock,
+} from "@/hooks/use-table-hold-clock";
+import {
+  fetchEvent,
+  fetchTicket,
+  submitPayment,
+  type EventDto,
+  type HostDto,
+} from "@/lib/events-api";
 import { setProofDraft } from "@/lib/payment-draft";
+import {
+  cancelTableReservation,
+  fetchMyTableReservations,
+  type MyTableReservation,
+} from "@/lib/reservation-api";
 
 // Theme colors
 const PURPLE = BrandColors.purple;
@@ -48,29 +64,73 @@ const FontSize = {
 const formatSize = (bytes?: number | null) =>
   bytes ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : null;
 
+type PaymentDetails = {
+  event: EventDto & {
+    host?: string | (HostDto & { imageUrl?: string });
+    hostName?: string;
+    hostedBy?: string;
+    hostAvatarUrl?: string;
+  };
+  table?: MyTableReservation;
+};
+
+const tablePrice = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+});
+
 export default function PaymentScreen() {
-  const { ticketId, reservationItemId } = useLocalSearchParams<{
+  const { ticketId, reservationItemId, itemType } = useLocalSearchParams<{
     ticketId: string;
     reservationItemId: string;
+    itemType: string;
   }>();
+  const isTablePayment = itemType === "table";
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [ticket, setTicket] = useState<TicketDetailDto | null>(null);
+  const [payment, setPayment] = useState<PaymentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [proofImage, setProofImage] = useState<PickedImage | null>(null);
   const [proofSize, setProofSize] = useState<number | null>(null);
   const [referenceNum, setReferenceNum] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const deadline = payment?.table?.expiresAt;
+  const now = useTableHoldClock(!!deadline);
+  const secondsLeft = tableHoldSeconds(deadline, now);
+  const expired = secondsLeft === 0;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const t = await fetchTicket(ticketId);
-        if (!cancelled) setTicket(t);
+        let details: PaymentDetails;
+        if (isTablePayment) {
+          if (!reservationItemId) return;
+          const [booking] = await fetchMyTableReservations(
+            undefined,
+            reservationItemId,
+          );
+          if (!booking) throw new Error("Table reservation not found.");
+          if (booking.reservationStatus === "Expired") {
+            throw new Error("This table hold has expired.");
+          }
+          if (
+            booking.reservationStatus !== "Pending" ||
+            booking.paymentSubmitted ||
+            booking.unitPrice <= 0
+          ) {
+            throw new Error("Check My Tables for the current status of this reservation.");
+          }
+          details = { event: await fetchEvent(booking.eventId), table: booking };
+        } else {
+          details = await fetchTicket(ticketId);
+        }
+        if (!cancelled) setPayment(details);
       } catch (e) {
         if (!cancelled)
           setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -81,7 +141,7 @@ export default function PaymentScreen() {
     return () => {
       cancelled = true;
     };
-  }, [ticketId]);
+  }, [isTablePayment, reservationItemId, ticketId]);
 
   async function pickProofImage() {
     try {
@@ -119,18 +179,29 @@ export default function PaymentScreen() {
   }
 
   const canSend =
-    !submitting && !!reservationItemId && !!proofImage && !!referenceNum.trim();
+    !submitting &&
+    !cancelling &&
+    !expired &&
+    !!reservationItemId &&
+    !!proofImage &&
+    !!referenceNum.trim();
 
   async function onSend() {
-    if (!proofImage || !referenceNum.trim() || !reservationItemId) return;
+    if (!canSend || !proofImage || tableHoldSeconds(deadline, Date.now()) === 0)
+      return;
     try {
       setSubmitting(true);
+      setSendError(null);
       const uploaded = await uploadProofImage(proofImage);
       await submitPayment(
         reservationItemId,
         referenceNum.trim(),
         uploaded.publicUrl,
       );
+      if (isTablePayment) {
+        router.replace("/my-tables");
+        return;
+      }
       setProofDraft({
         uri: proofImage.uri,
         name: proofImage.fileName ?? "Payment proof",
@@ -141,12 +212,27 @@ export default function PaymentScreen() {
         params: { ticketId },
       });
     } catch (e) {
-      Alert.alert(
-        "Payment failed",
-        e instanceof Error ? e.message : "Something went wrong.",
-      );
+      const message = e instanceof Error ? e.message : "Something went wrong.";
+      if (isTablePayment) setSendError(message);
+      else Alert.alert("Payment failed", message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function cancelReservation() {
+    if (submitting || cancelling || !reservationItemId) return;
+    setCancelling(true);
+    setSendError(null);
+    try {
+      await cancelTableReservation(reservationItemId);
+      router.replace("/my-tables");
+    } catch (err) {
+      setSendError(
+        err instanceof Error ? err.message : "Couldn't cancel this reservation.",
+      );
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -160,8 +246,7 @@ export default function PaymentScreen() {
     );
   }
 
-  // Ticket or reservation not found.
-  if (!ticket || !reservationItemId) {
+  if (!payment || !reservationItemId || (expired && !submitting && !cancelling)) {
     return (
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
@@ -179,23 +264,31 @@ export default function PaymentScreen() {
           </View>
 
           <ThemedText type="small" style={styles.center}>
-            {!reservationItemId
-              ? "Reservation is missing. Please return to ticket selection and try again."
-              : (error ?? "Ticket not found.")}
+            {expired
+              ? "The time to submit payment proof has ended."
+              : !reservationItemId
+                ? "Reservation is missing. Please return to your selection and try again."
+                : (error ?? "Reservation not found.")}
           </ThemedText>
+          {isTablePayment && (
+            <Pressable
+              onPress={() => router.replace("/my-tables")}
+              style={styles.cancelButton}
+              accessibilityRole="button"
+            >
+              <ThemedText style={styles.cancelText}>View My Tables</ThemedText>
+            </Pressable>
+          )}
         </SafeAreaView>
       </ThemedView>
     );
   }
 
-  const qrUrl = ticket.event.paymentQrUrl;
-
-  // NOTE: adjust these field names to match your event DTO.
-  const ev = ticket.event as any;
-  const hostName: string | undefined =
-    ev.hostName ?? ev.host?.name ?? ev.hostedBy;
-  const hostAvatar: string | undefined =
-    ev.hostAvatarUrl ?? ev.host?.avatarUrl ?? ev.host?.imageUrl;
+  const { event } = payment;
+  const qrUrl = event.paymentQrUrl;
+  const host = typeof event.host === "object" ? event.host : undefined;
+  const hostName = event.hostName ?? host?.name ?? event.hostedBy;
+  const hostAvatar = event.hostAvatarUrl ?? host?.avatarUrl ?? host?.imageUrl;
 
   return (
     <ThemedView style={styles.container}>
@@ -231,6 +324,16 @@ export default function PaymentScreen() {
           >
             {/* QR */}
             <ThemedText style={styles.sectionTitle}>Scan to pay</ThemedText>
+            {payment.table && (
+              <ThemedText type="smallBold">
+                {payment.table.tableLabel} · {tablePrice.format(payment.table.unitPrice)}
+              </ThemedText>
+            )}
+            {secondsLeft !== null && (
+              <ThemedText type="small">
+                Time left to submit proof {formatTableHoldTime(secondsLeft)}
+              </ThemedText>
+            )}
             <View style={styles.qrBox}>
               {hostName ? (
                 <View style={styles.hostRow}>
@@ -257,7 +360,7 @@ export default function PaymentScreen() {
                 />
               ) : (
                 <ThemedText type="small" style={styles.qrEmpty}>
-                  The host hasn't uploaded a payment QR code yet.
+                  The host hasn&apos;t uploaded a payment QR code yet.
                 </ThemedText>
               )}
             </View>
@@ -341,10 +444,15 @@ export default function PaymentScreen() {
               onChangeText={setReferenceNum}
               placeholder="Enter your transaction reference"
               placeholderTextColor={MUTED}
-              maxLength={255}
+              maxLength={100}
               autoCapitalize="none"
               style={styles.referenceInput}
             />
+            {sendError && (
+              <ThemedText accessibilityRole="alert" style={{ color: BrandColors.error }}>
+                {sendError}
+              </ThemedText>
+            )}
           </ScrollView>
 
           {/* Footer (pinned at the bottom) */}
@@ -374,13 +482,20 @@ export default function PaymentScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => router.back()}
+              onPress={isTablePayment ? cancelReservation : () => router.back()}
+              disabled={isTablePayment && (submitting || cancelling || expired)}
               hitSlop={12}
               style={styles.cancelButton}
               accessibilityRole="button"
-              accessibilityLabel="Cancel"
+              accessibilityLabel={isTablePayment ? "Cancel reservation" : "Cancel"}
             >
-              <ThemedText style={styles.cancelText}>Cancel</ThemedText>
+              <ThemedText style={styles.cancelText}>
+                {isTablePayment
+                  ? cancelling
+                    ? "Cancelling…"
+                    : "Cancel reservation"
+                  : "Cancel"}
+              </ThemedText>
             </Pressable>
           </View>
         </KeyboardAvoidingView>

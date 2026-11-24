@@ -3,7 +3,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { DateTimeField } from "@/components/event/date-time-field";
+import {
+  DateTimePartField,
+  parseLocalDateTime,
+} from "@/components/event/date-time-field";
 import { FormInput } from "@/components/event/form-input";
 import { ImagePickerField } from "@/components/event/image-picker-field";
 import { TableDraftList } from "@/components/event/table-draft-list";
@@ -27,20 +30,28 @@ import { addTable, NewTable } from "@/data/table";
 import { addTicket, NewTicket } from "@/data/ticket";
 
 const PURPLE = "#6B2CF5";
-const HOUR = 60 * 60 * 1000;
 
 type Props = {
   onCreated: () => void | Promise<void>;
 };
 
+type EventSchedule = {
+  startTime: Date;
+  endTime: Date;
+};
+
 export function CreateEventForm({ onCreated }: Props) {
-  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [scheduleToConfirm, setScheduleToConfirm] =
+    useState<EventSchedule | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [capacity, setCapacity] = useState("");
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date(Date.now() + HOUR));
+  const [startDate, setStartDate] = useState("");
+  const [startClock, setStartClock] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endClock, setEndClock] = useState("");
+  const [scheduleError, setScheduleError] = useState("");
   const [tickets, setTickets] = useState<NewTicket[]>([]);
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [status, setStatus] = useState("");
@@ -52,14 +63,15 @@ export function CreateEventForm({ onCreated }: Props) {
     useState<PickedImage | null>(null);
 
   function resetForm() {
-    const now = new Date();
-
     setName("");
     setDescription("");
     setLocation("");
     setCapacity("");
-    setStartTime(now);
-    setEndTime(new Date(now.getTime() + HOUR));
+    setStartDate("");
+    setStartClock("");
+    setEndDate("");
+    setEndClock("");
+    setScheduleError("");
     setTickets([]);
     setTables([]);
     setMap(null);
@@ -67,7 +79,34 @@ export function CreateEventForm({ onCreated }: Props) {
     setEventGraphicImage(null);
   }
 
-  async function handleCreate() {
+  function reviewSchedule() {
+    if (!startDate || !startClock || !endDate || !endClock) {
+      setScheduleError("Choose a date and time for both the start and end.");
+      return;
+    }
+
+    const startTime = parseLocalDateTime(startDate, startClock);
+    const endTime = parseLocalDateTime(endDate, endClock);
+
+    if (!startTime || !endTime) {
+      setScheduleError(
+        !startTime
+          ? "Choose a valid start date and time."
+          : "Choose a valid end date and time.",
+      );
+      return;
+    }
+
+    if (endTime <= startTime) {
+      setScheduleError("The event must end after it starts.");
+      return;
+    }
+
+    setScheduleError("");
+    setScheduleToConfirm({ startTime, endTime });
+  }
+
+  async function handleCreate({ startTime, endTime }: EventSchedule) {
     const capacityNumber = Number(capacity);
 
     if (
@@ -82,11 +121,6 @@ export function CreateEventForm({ onCreated }: Props) {
 
     if (!Number.isInteger(capacityNumber) || capacityNumber <= 0) {
       setStatus("Capacity must be a positive whole number.");
-      return;
-    }
-
-    if (endTime <= startTime) {
-      setStatus("End time must be after start time.");
       return;
     }
 
@@ -193,19 +227,6 @@ export function CreateEventForm({ onCreated }: Props) {
     }
   }
 
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "2-digit",
-    });
-
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
   const isError =
     !!status &&
     status !== "Creating..." &&
@@ -254,90 +275,54 @@ export function CreateEventForm({ onCreated }: Props) {
         cardStyle={styles.descriptionCard}
       />
 
-      {/* Date card: both dates remain independent. */}
-      <View style={styles.dateCard}>
-        <Ionicons name="calendar-outline" size={30} color="#000" />
-
-        <View style={styles.flex}>
-          <Text style={styles.cardLabel}>Date</Text>
-
-          <View style={styles.dateChoices}>
-            <DateTimeField
-              label="Starts"
-              value={startTime}
-              onChange={setStartTime}
-              renderTrigger={(open) => (
-                <Pressable onPress={open}>
-                  <Text style={styles.cardSub}>
-                    Start: {formatDate(startTime)}
-                  </Text>
-                </Pressable>
-              )}
-            />
-
-            <DateTimeField
-              label="Ends"
-              value={endTime}
-              onChange={setEndTime}
-              renderTrigger={(open) => (
-                <Pressable onPress={open}>
-                  <Text style={styles.cardSub}>End: {formatDate(endTime)}</Text>
-                </Pressable>
-              )}
-            />
+      <View style={styles.schedule}>
+        {[
+          {
+            label: "Start",
+            date: startDate,
+            clock: startClock,
+            setDate: setStartDate,
+            setClock: setStartClock,
+          },
+          {
+            label: "End",
+            date: endDate,
+            clock: endClock,
+            setDate: setEndDate,
+            setClock: setEndClock,
+            initialDate: startDate,
+          },
+        ].map(({ label, date, clock, setDate, setClock, initialDate }) => (
+          <View key={label} style={styles.scheduleGroup}>
+            <Text style={styles.scheduleLabel}>{label}</Text>
+            <View style={styles.scheduleRow}>
+              <DateTimePartField
+                label={`${label} date`}
+                mode="date"
+                value={date}
+                initialDate={initialDate}
+                onChange={(value) => {
+                  setDate(value);
+                  setScheduleError("");
+                }}
+              />
+              <DateTimePartField
+                label={`${label} time`}
+                mode="time"
+                value={clock}
+                onChange={(value) => {
+                  setClock(value);
+                  setScheduleError("");
+                }}
+              />
+            </View>
           </View>
-        </View>
-
-        <Ionicons name="chevron-down" size={18} color="#000" />
-      </View>
-
-      {/* Start and end time cards */}
-      <View style={styles.timeRow}>
-        <DateTimeField
-          label="Starts"
-          value={startTime}
-          onChange={setStartTime}
-          containerStyle={styles.timeColumn}
-          renderTrigger={(open) => (
-            <Pressable onPress={open} style={styles.timeCard}>
-              <Ionicons name="stopwatch-outline" size={30} color="#000" />
-
-              <View style={styles.flex}>
-                <Text style={styles.timeLabel} numberOfLines={1}>
-                  Start Time
-                </Text>
-                <Text style={styles.cardSub} numberOfLines={1}>
-                  {formatTime(startTime)}
-                </Text>
-              </View>
-
-              <Ionicons name="chevron-down" size={18} color="#000" />
-            </Pressable>
-          )}
-        />
-
-        <DateTimeField
-          label="Ends"
-          value={endTime}
-          onChange={setEndTime}
-          containerStyle={styles.timeColumn}
-          renderTrigger={(open) => (
-            <Pressable onPress={open} style={styles.timeCard}>
-              <Ionicons name="stopwatch-outline" size={30} color="#000" />
-
-              <View style={styles.flex}>
-                <Text style={styles.timeLabel} numberOfLines={1}>
-                  End Time
-                </Text>
-                <Text style={styles.cardSub} numberOfLines={1}>
-                  {formatTime(endTime)}
-                </Text>
-              </View>
-
-              <Ionicons name="chevron-down" size={18} color="#000" />
-            </Pressable>
-          )}
-        />
+        ))}
+        {scheduleError ? (
+          <Text accessibilityRole="alert" style={styles.statusError}>
+            {scheduleError}
+          </Text>
+        ) : null}
       </View>
 
       <FormInput
@@ -467,7 +452,7 @@ export function CreateEventForm({ onCreated }: Props) {
       ) : null}
 
       <Pressable
-        onPress={() => setConfirmVisible(true)}
+        onPress={reviewSchedule}
         style={({ pressed }) => [
           styles.createButton,
           pressed && styles.createButtonPressed,
@@ -491,11 +476,13 @@ export function CreateEventForm({ onCreated }: Props) {
         />
 
         <ConfirmCreateModal
-          visible={confirmVisible}
-          onCancel={() => setConfirmVisible(false)}
+          visible={scheduleToConfirm !== null}
+          onCancel={() => setScheduleToConfirm(null)}
           onConfirm={() => {
-            setConfirmVisible(false);
-            void handleCreate();
+            if (scheduleToConfirm) {
+              setScheduleToConfirm(null);
+              void handleCreate(scheduleToConfirm);
+            }
           }}
         />
       </View>
@@ -508,9 +495,6 @@ const COVER_PHOTO_SIZE = 96;
 const styles = StyleSheet.create({
   form: {
     gap: 14,
-  },
-  flex: {
-    flex: 1,
   },
   modalHost: {
     position: "absolute",
@@ -544,55 +528,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  dateCard: {
-    borderWidth: 1.5,
-    borderColor: "#D4D4D4",
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    minHeight: 64,
+  schedule: {
+    gap: 12,
   },
-  dateChoices: {
-    gap: 5,
-    marginTop: 4,
+  scheduleGroup: {
+    gap: 6,
   },
-  cardLabel: {
+  scheduleLabel: {
     fontSize: 16,
     fontWeight: "700",
     color: "#000",
   },
-  cardSub: {
-    fontSize: 12,
-    color: "#B3B3B3",
-  },
-  timeRow: {
+  scheduleRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-  },
-  timeColumn: {
-    flex: 1,
-  },
-  timeCard: {
-    borderWidth: 1.5,
-    borderColor: "#D4D4D4",
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 64,
-  },
-  timeLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
+    gap: 10,
   },
   venueCard: {
     gap: 12,

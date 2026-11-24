@@ -23,8 +23,21 @@ type Props = {
 
 const pad = (number: number) => String(number).padStart(2, "0");
 
+const toDateValue = (date: Date) =>
+  `${String(date.getFullYear()).padStart(4, "0")}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+const toTimeValue = (date: Date) =>
+  `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
 const toWebValue = (date: Date) =>
-  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  `${toDateValue(date)}T${toTimeValue(date)}`;
+
+export function parseLocalDateTime(date: string, time: string) {
+  const value = `${date}T${time}`;
+  const result = new Date(value);
+
+  return !isNaN(result.getTime()) && toWebValue(result) === value ? result : null;
+}
 
 const display = (date: Date) =>
   date.toLocaleString(undefined, {
@@ -155,6 +168,137 @@ export function DateTimeField({
   );
 }
 
+type DateTimePartProps = {
+  label: string;
+  mode: "date" | "time";
+  value: string;
+  onChange: (value: string) => void;
+  initialDate?: string;
+};
+
+export function DateTimePartField({
+  label,
+  mode,
+  value,
+  onChange,
+  initialDate,
+}: DateTimePartProps) {
+  const [draft, setDraft] = useState<Date | null>(null);
+  const isDate = mode === "date";
+  const formatValue = isDate ? toDateValue : toTimeValue;
+
+  function pickerValue(selected: string) {
+    if (!isDate) return new Date(`2000-01-01T${selected || "12:00"}`);
+    return selected ? new Date(`${selected}T12:00`) : new Date();
+  }
+
+  function open() {
+    const initial = pickerValue(value || initialDate || "");
+
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: initial,
+        mode,
+        onValueChange: (_, selected) => onChange(formatValue(selected)),
+      });
+    } else if (Platform.OS === "ios") {
+      setDraft(initial);
+    }
+  }
+
+  if (Platform.OS === "web") {
+    return createElement("input", {
+      type: mode,
+      "aria-label": label,
+      value,
+      onChange: (event: { target: { value: string } }) =>
+        onChange(event.target.value),
+      style: {
+        flex: 1,
+        minWidth: 0,
+        padding: 12,
+        fontSize: 15,
+        borderRadius: 14,
+        border: "1.5px solid #D4D4D4",
+        color: "#000000",
+        backgroundColor: "#FFFFFF",
+      },
+    });
+  }
+
+  let displayValue = isDate ? "Select date" : "Select time";
+  if (value) {
+    const selected = pickerValue(value);
+    displayValue = isDate
+      ? selected.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : selected.toLocaleTimeString(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+        });
+  }
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityValue={{ text: displayValue }}
+        onPress={open}
+        style={[styles.button, styles.partButton]}
+      >
+        <Text style={[styles.value, !value && styles.placeholder]}>
+          {displayValue}
+        </Text>
+      </Pressable>
+
+      {draft && (
+        <Modal
+          transparent
+          animationType="slide"
+          visible
+          onRequestClose={() => setDraft(null)}
+        >
+          <View style={styles.backdrop}>
+            <View style={styles.sheet}>
+              <Text style={styles.modalTitle}>{label}</Text>
+              <DateTimePicker
+                value={draft}
+                mode={mode}
+                display={isDate ? "inline" : "spinner"}
+                themeVariant="light"
+                onValueChange={(_, selected) => setDraft(selected)}
+              />
+              <View style={styles.pickerActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setDraft(null)}
+                  style={styles.pickerAction}
+                >
+                  <Text style={styles.pickerActionText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    onChange(formatValue(draft));
+                    setDraft(null);
+                  }}
+                  style={styles.pickerAction}
+                >
+                  <Text style={styles.pickerActionText}>Done</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   field: {
     gap: 6,
@@ -180,6 +324,14 @@ const styles = StyleSheet.create({
     borderColor: "#D4D4D4",
     backgroundColor: "#FFFFFF",
   },
+  partButton: {
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 48,
+  },
+  placeholder: {
+    color: "#60646C",
+  },
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
@@ -197,6 +349,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#000",
     textAlign: "center",
+  },
+  pickerActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  pickerAction: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  pickerActionText: {
+    color: "#6B2CF5",
+    fontSize: 16,
+    fontWeight: "600",
   },
   doneButton: {
     backgroundColor: "#6B2CF5",

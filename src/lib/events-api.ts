@@ -38,7 +38,7 @@ export type EventTableDto = {
   label: string;
   tablePrice: number;
   status: string;
-  capacity: number;
+  capacity: number | null;
 };
 
 export type EventDetailDto = EventDto & {
@@ -100,7 +100,16 @@ export async function fetchEvent(id: string): Promise<EventDetailDto> {
   if (res.status === 404)
     throw new Error("This event doesn't exist or was removed.");
   if (!res.ok) throw new Error("Couldn't load this event. Please try again.");
-  return res.json();
+  const data: Omit<EventDetailDto, "tables"> & {
+    tables?: (Omit<EventTableDto, "label"> & { label?: string; lable?: string })[];
+  } = await res.json();
+  return {
+    ...data,
+    tables: (data.tables ?? []).map((table) => ({
+      ...table,
+      label: table.label ?? table.lable ?? "Table",
+    })),
+  };
 }
 
 export type TicketDetailDto = EventTicketDto & {
@@ -131,8 +140,10 @@ export type TicketReservationDto = {
 export type TableReservationDto = {
   reservationId: string;
   reservationItemId: string;
-  ticketId: string;
+  tableId: string;
+  reservationStatus: "Pending" | "Confirmed";
   paymentRequired: boolean;
+  paymentSubmitted: boolean;
 };
 
 export async function createTicketReservation(
@@ -187,13 +198,6 @@ export async function submitPayment(
   screenshotUrl: string,
 ) {
   const token = await getToken();
-  // Debug: log what is sent. Remove once payments work.
-  console.log("submitPayment ->", `${API_URL}/api/payments`, {
-    reservationItemId,
-    referenceNum,
-    screenshotUrl,
-    hasToken: !!token,
-  });
   const res = await fetch(`${API_URL}/api/payments`, {
     method: "POST",
     headers: {
