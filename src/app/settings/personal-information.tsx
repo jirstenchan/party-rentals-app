@@ -66,7 +66,7 @@ export default function PersonalInformationScreen() {
     setBusy(true);
     setProblem("");
     try {
-      const image = await chooseAccountImage(2);
+      const image = await chooseAccountImage(5);
       if (image) setAvatar(image);
     } catch (error) {
       setProblem(

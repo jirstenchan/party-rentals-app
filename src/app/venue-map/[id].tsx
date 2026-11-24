@@ -1,6 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -19,7 +24,6 @@ import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
 const PURPLE = BrandColors.purple;
 const BORDER = BrandColors.border;
 const MUTED = BrandColors.muted;
-const BLACK = BrandColors.black;
 const WHITE = BrandColors.white;
 const MARGIN = 25;
 
@@ -124,10 +128,12 @@ function TableIcon({ color }: { color: string }) {
 function BuyButton({
   disabled,
   label,
+  text = "Buy",
   onPress,
 }: {
   disabled?: boolean;
   label: string;
+  text?: string;
   onPress: () => void;
 }) {
   return (
@@ -144,7 +150,7 @@ function BuyButton({
       accessibilityLabel={label}
     >
       <ThemedText style={[styles.buyText, disabled && styles.buyTextDisabled]}>
-        Buy
+        {text}
       </ThemedText>
     </Pressable>
   );
@@ -157,36 +163,32 @@ export default function VenueMapScreen() {
   const [error, setError] = useState<string | null>(null);
   const [event, setEvent] = useState<EventDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Shape (width / height) of the uploaded map, read when the image loads
   const [mapRatio, setMapRatio] = useState<number | null>(null);
 
-  // Fetch event details from the backend
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      setEvent(await fetchEvent(id));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-    }
-  }, [id]);
-
-  // Load event when the screen opens
-  useEffect(() => {
-    setLoading(true);
-
-    load().finally(() => {
-      setLoading(false);
-    });
-  }, [load]);
-
-  // Refresh event information
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void fetchEvent(id)
+        .then((result) => {
+          if (!active) return;
+          setEvent(result);
+          setError(null);
+        })
+        .catch((err) => {
+          if (active) {
+            setError(err instanceof Error ? err.message : "Something went wrong.");
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [id]),
+  );
 
   // Loading screen
   if (loading) {
@@ -328,10 +330,49 @@ export default function VenueMapScreen() {
             </View>
           )}
 
-          {/* Tables */}
-          {/*
-            Needs BackEnd 
-          */}
+          {event.tables.length > 0 && (
+            <>
+              <ThemedText style={styles.sectionTitle}>Tables</ThemedText>
+              <View style={styles.cards}>
+                {event.tables.map((table) => {
+                  const available = table.status === "Available";
+                  return (
+                    <View key={table.tableId} style={styles.card}>
+                      <View style={styles.cardIcon}>
+                        <TableIcon color={PURPLE} />
+                      </View>
+                      <View style={styles.cardInfo}>
+                        <ThemedText style={styles.cardName}>{table.label}</ThemedText>
+                        <ThemedText style={styles.cardSub}>
+                          {formatPrice(table.tablePrice)}
+                        </ThemedText>
+                        {table.capacity !== null && (
+                          <ThemedText style={styles.cardSub}>
+                            {table.capacity} {table.capacity === 1 ? "seat" : "seats"}
+                          </ThemedText>
+                        )}
+                      </View>
+                      <BuyButton
+                        disabled={!available}
+                        label={
+                          available
+                            ? `Reserve ${table.label}`
+                            : `${table.label} is reserved`
+                        }
+                        text={available ? "Reserve" : "Reserved"}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/tableBuy",
+                            params: { eventId: event.id, tableId: table.tableId },
+                          })
+                        }
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
