@@ -147,7 +147,7 @@ export default function HomeScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search events, venues, or hosts..."
+            placeholder="Search events"
             placeholderTextColor={MUTED}
             style={styles.searchInput}
             returnKeyType="search"

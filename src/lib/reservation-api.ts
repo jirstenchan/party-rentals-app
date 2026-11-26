@@ -28,6 +28,7 @@ export type MyTableReservation = {
   eventId: string;
   eventName: string;
   eventStartTime: string;
+  eventEndTime?: string;
   tableLabel: string;
   capacity: number | null;
   unitPrice: number;
@@ -35,6 +36,11 @@ export type MyTableReservation = {
   expiresAt: string | null;
   guestNames: string[];
 };
+
+export type ReservationSchedule = Pick<
+  ReservationRowDto,
+  "reservationItemId" | "eventStartTime"
+> & { eventEndTime?: string };
 
 function authHeaders(token: string | null): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -75,7 +81,19 @@ export async function fetchMyTableReservations(
   if (res.status === 401) throw new Error("You need to sign in.");
   if (!res.ok) throw new Error("Couldn't load table reservations.");
   const body: { data: MyTableReservation[] } = await res.json();
-  return body.data;
+  if (reservationItemId || body.data.every((booking) => booking.eventEndTime)) {
+    return body.data;
+  }
+
+  // Older versions of the tables endpoint omit the end time.
+  const reservations = await fetchMyReservations(signal);
+  const eventEndTimes = new Map(
+    reservations.map((row) => [row.eventId, row.eventEndTime] as const),
+  );
+  return body.data.map((booking) => ({
+    ...booking,
+    eventEndTime: booking.eventEndTime ?? eventEndTimes.get(booking.eventId),
+  }));
 }
 
 export async function saveTableGuestNames(
@@ -111,25 +129,43 @@ export async function cancelTableReservation(reservationItemId: string): Promise
 
 export async function fetchMyTickets(signal?: AbortSignal): Promise<MyTicket[]> {
   const reservations = await fetchMyReservations(signal);
-  const now = Date.now();
 
-  return reservations
-    .filter(
-      (row): row is MyTicket =>
-        row.itemType === "ticket" &&
-        (row.reservationStatus === "Pending" ||
-          row.reservationStatus === "Confirmed"),
-    )
-    .sort((a, b) => {
-      const aEnded = Date.parse(a.eventEndTime) <= now;
-      const bEnded = Date.parse(b.eventEndTime) <= now;
-      if (aEnded !== bEnded) return aEnded ? 1 : -1;
+  return reservations.filter(
+    (row): row is MyTicket =>
+      row.itemType === "ticket" &&
+      (row.reservationStatus === "Pending" ||
+        row.reservationStatus === "Confirmed"),
+  );
+}
 
-      const startOrder =
-        Date.parse(a.eventStartTime) - Date.parse(b.eventStartTime);
-      return (
-        (aEnded ? -startOrder : startOrder) ||
-        a.reservationItemId.localeCompare(b.reservationItemId)
-      );
-    });
+export function groupReservationsByEventTime<T extends ReservationSchedule>(
+  reservations: readonly T[],
+  now: number,
+) {
+  const upcoming: T[] = [];
+  const history: T[] = [];
+  let nextEventEnd = Infinity;
+
+  for (const reservation of reservations) {
+    const end = Date.parse(reservation.eventEndTime ?? "");
+    if (end <= now) {
+      history.push(reservation);
+    } else {
+      upcoming.push(reservation);
+      if (end < nextEventEnd) nextEventEnd = end;
+    }
+  }
+
+  upcoming.sort(
+    (a, b) =>
+      Date.parse(a.eventStartTime) - Date.parse(b.eventStartTime) ||
+      a.reservationItemId.localeCompare(b.reservationItemId),
+  );
+  history.sort(
+    (a, b) =>
+      Date.parse(b.eventEndTime ?? "") - Date.parse(a.eventEndTime ?? "") ||
+      a.reservationItemId.localeCompare(b.reservationItemId),
+  );
+
+  return { upcoming, history, nextEventEnd };
 }

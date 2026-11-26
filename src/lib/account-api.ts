@@ -1,4 +1,5 @@
 import { decode } from "base64-arraybuffer";
+import { File } from "expo-file-system";
 import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
 
@@ -70,27 +71,22 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 function appendImage(form: FormData, field: string, image: AccountImage) {
+  if (Platform.OS !== "web") {
+    form.append(field, new File(image.uri));
+    return;
+  }
+
   const extension =
     image.mimeType === "image/png"
       ? "png"
       : image.mimeType === "image/webp"
         ? "webp"
         : "jpg";
-  const name = `image.${extension}`;
-  if (Platform.OS === "web") {
-    form.append(
-      field,
-      new Blob([decode(image.base64)], { type: image.mimeType }),
-      name,
-    );
-  } else {
-    // React Native's multipart implementation reads local files by URI.
-    form.append(field, {
-      uri: image.uri,
-      name,
-      type: image.mimeType,
-    } as unknown as Blob);
-  }
+  form.append(
+    field,
+    new Blob([decode(image.base64)], { type: image.mimeType }),
+    `image.${extension}`,
+  );
 }
 
 export async function fetchAccountProfile(): Promise<AccountProfile> {

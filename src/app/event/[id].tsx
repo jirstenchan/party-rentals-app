@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -109,6 +110,7 @@ export default function EventDetailsScreen() {
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [event, setEvent] = useState<EventDetailDto | null>(null);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +129,7 @@ export default function EventDetailsScreen() {
       setError(null);
 
       const result = await fetchEvent(id);
+      setFailedAvatarUrl(null);
       setEvent(result);
     } catch (e) {
       setError(
@@ -157,6 +160,8 @@ export default function EventDetailsScreen() {
     event?.tickets && event.tickets.length > 0
       ? Math.min(...event.tickets.map((ticket) => ticket.ticketPrice))
       : null;
+  const hostName = event?.host?.name;
+  const avatarUrl = event?.host?.avatarUrl;
 
   return (
     <ThemedView style={styles.container}>
@@ -265,9 +270,11 @@ export default function EventDetailsScreen() {
 
               {/* Title + Host */}
               <View style={styles.titleRow}>
-                {event.host.avatarUrl ? (
-                  <Image
-                    source={{ uri: event.host.name }}
+                {avatarUrl && avatarUrl !== failedAvatarUrl ? (
+                  <ExpoImage
+                    key={avatarUrl}
+                    source={{ uri: avatarUrl }}
+                    onError={() => setFailedAvatarUrl(avatarUrl)}
                     style={styles.avatar}
                   />
                 ) : (
@@ -282,7 +289,7 @@ export default function EventDetailsScreen() {
                   </ThemedText>
 
                   <ThemedText style={styles.host} numberOfLines={1}>
-                    Hosted by: {event.host.name}
+                    {hostName ? `Hosted by ${hostName}` : "Host name unavailable"}
                   </ThemedText>
                 </View>
               </View>

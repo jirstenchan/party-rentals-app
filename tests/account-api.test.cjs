@@ -21,8 +21,14 @@ class NativeFormData {
   get(name) { return this.fields.get(name); }
 }
 
+class NativeFile {
+  constructor(uri) { this.uri = uri; }
+  async bytes() { return new Uint8Array([1, 2, 3]); }
+}
+
 function accountApi({ platform = "android", session = true, fetch } = {}) {
   return loadAccountModule("../src/lib/account-api.ts", {
+    "expo-file-system": { File: NativeFile },
     "react-native": { Platform: { OS: platform } },
     "@/lib/supabase": { supabase: { auth: { getSession: async () => ({
       data: { session: session ? { access_token: "test-access-token" } : null }, error: null,
@@ -42,7 +48,10 @@ test("native ID submission sends authenticated multipart data without setting a 
     assert.equal(init.headers.Authorization, "Bearer test-access-token");
     assert.equal(init.headers["Content-Type"], undefined);
     assert.equal(init.body.get("idType"), "student");
-    assert.deepEqual(init.body.get("image"), { uri: image.uri, name: "image.png", type: "image/png" });
+    const file = init.body.get("image");
+    assert.ok(file instanceof NativeFile);
+    assert.equal(file.uri, image.uri);
+    assert.deepEqual(await file.bytes(), new Uint8Array([1, 2, 3]));
     assert.equal(init.body.get("userId"), undefined);
     return response({ ok: true, message: "Under review" }, 201);
   } });
@@ -105,4 +114,82 @@ test("ID picker preserves the whole image and validates type and size before upl
   await assert.rejects(chooseAccountImage(5), /JPEG, PNG or WebP/);
   asset = { ...asset, mimeType: "image/png", fileSize: 6 * 1024 * 1024 };
   await assert.rejects(chooseAccountImage(5), /up to 5 MB/);
+});
+
+test("profile photos are resized and uploaded from the prepared file", async () => {
+  const original = {
+    uri: "file:///temporary/camera.heic",
+    mimeType: "image/heic",
+    width: 3000,
+    height: 4000,
+    fileSize: 4 * 1024 * 1024,
+  };
+  const prepared = { uri: "file:///temporary/avatar.jpg", base64: "AQID" };
+  const { chooseProfilePhoto } = loadAccountModule("../src/lib/profile-photo.ts", {
+    expo: { requireOptionalNativeModule: (name) => {
+      assert.equal(name, "ExpoImageManipulator");
+      return {};
+    } },
+    "react-native": { Platform: { OS: "android" } },
+    "@/lib/account-image": { chooseAccountImage: () => assert.fail("Unexpected fallback") },
+    "expo-image-picker": {
+      UIImagePickerPreferredAssetRepresentationMode: { Compatible: "compatible" },
+      launchImageLibraryAsync: async (options) => {
+        assert.deepEqual(options.mediaTypes, ["images"]);
+        assert.equal(options.preferredAssetRepresentationMode, "compatible");
+        return { canceled: false, assets: [original] };
+      },
+    },
+    "expo-image-manipulator": {
+      SaveFormat: { JPEG: "jpeg", PNG: "png" },
+      ImageManipulator: {
+        manipulate(uri) {
+          assert.equal(uri, original.uri);
+          return {
+            resize: (size) => assert.deepEqual(size, { height: 640 }),
+            renderAsync: async () => ({
+              saveAsync: async (options) => {
+                assert.deepEqual(options, { format: "jpeg", compress: 0.8, base64: true });
+                return prepared;
+              },
+            }),
+          };
+        },
+      },
+    },
+  });
+
+  const avatar = await chooseProfilePhoto();
+  assert.deepEqual(avatar, { ...prepared, mimeType: "image/jpeg" });
+  const api = accountApi({ fetch: async (_url, init) => {
+    const file = init.body.get("avatar");
+    assert.ok(file instanceof NativeFile);
+    assert.equal(file.uri, prepared.uri);
+    assert.deepEqual(await file.bytes(), new Uint8Array([1, 2, 3]));
+    return response({ ok: true, message: "Changes saved." });
+  } });
+  await api.updateAccountProfile({ name: "Name", phone: "", hostName: "", avatar });
+});
+
+test("older phone builds can pick an uploadable profile photo without the native resizer", async () => {
+  let asset = { ...image, fileSize: 3 };
+  const picker = {
+    launchImageLibraryAsync: async () => ({ canceled: false, assets: [asset] }),
+  };
+  const fallback = loadAccountModule("../src/lib/account-image.ts", {
+    "expo-image-picker": picker,
+  });
+  const { chooseProfilePhoto } = loadAccountModule("../src/lib/profile-photo.ts", {
+    expo: { requireOptionalNativeModule: () => null },
+    "react-native": { Platform: { OS: "android" } },
+    "@/lib/account-image": fallback,
+    "expo-image-picker": picker,
+    get "expo-image-manipulator"() {
+      throw new Error("Cannot find native module 'ExpoImageManipulator'");
+    },
+  });
+
+  assert.equal((await chooseProfilePhoto()).uri, image.uri);
+  asset = { ...asset, fileSize: 3 * 1024 * 1024 };
+  await assert.rejects(chooseProfilePhoto(), /up to 2 MB/);
 });

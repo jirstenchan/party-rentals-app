@@ -45,7 +45,7 @@ export type EventDetailDto = EventDto & {
   description?: string | null;
   endTime?: string | null;
   tickets: EventTicketDto[];
-  host: HostDto;
+  host?: HostDto;
   tables: EventTableDto[];
 };
 
@@ -100,11 +100,15 @@ export async function fetchEvent(id: string): Promise<EventDetailDto> {
   if (res.status === 404)
     throw new Error("This event doesn't exist or was removed.");
   if (!res.ok) throw new Error("Couldn't load this event. Please try again.");
-  const data: Omit<EventDetailDto, "tables"> & {
+  const { host, hostProfile, ...data }: Omit<EventDetailDto, "host" | "tables"> & {
+    host?: string | HostDto;
+    hostProfile?: HostDto;
     tables?: (Omit<EventTableDto, "label"> & { label?: string; lable?: string })[];
   } = await res.json();
   return {
     ...data,
+    hostId: typeof host === "string" ? host : data.hostId,
+    host: hostProfile ?? (typeof host === "object" ? host : undefined),
     tables: (data.tables ?? []).map((table) => ({
       ...table,
       label: table.label ?? table.lable ?? "Table",
