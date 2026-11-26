@@ -17,7 +17,7 @@ import {
   type AccountImage,
   type AccountProfile,
 } from "@/lib/account-api";
-import { chooseAccountImage } from "@/lib/account-image";
+import { chooseProfilePhoto } from "@/lib/profile-photo";
 
 export default function PersonalInformationScreen() {
   const router = useRouter();
@@ -66,7 +66,7 @@ export default function PersonalInformationScreen() {
     setBusy(true);
     setProblem("");
     try {
-      const image = await chooseAccountImage(5);
+      const image = await chooseProfilePhoto();
       if (image) setAvatar(image);
     } catch (error) {
       setProblem(
@@ -160,7 +160,7 @@ export default function PersonalInformationScreen() {
                   disabled={busy}
                 />
                 <ThemedText style={styles.hint}>
-                  JPEG, PNG or WebP, up to 2 MB.
+                  Profile photos have a 2 MB upload limit.
                 </ThemedText>
               </View>
             </View>
