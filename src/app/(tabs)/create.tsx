@@ -50,7 +50,9 @@ export default function CreateEventScreen() {
     },
   });
 
-  function handleScroll({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
+  function handleScroll({
+    nativeEvent,
+  }: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentInset, contentSize, layoutMeasurement } =
       nativeEvent;
     const maxOffset = Math.max(
@@ -118,19 +120,6 @@ export default function CreateEventScreen() {
         </View>
 
         <CreateEventForm onCreated={handleRefresh} />
-
-        <View style={styles.eventsSection}>
-          {status ? <Text style={styles.status}>{status}</Text> : null}
-
-          {events.map((event) => (
-            <EventRow
-              key={event.id}
-              event={event}
-              onDelete={handleDelete}
-              onStatus={setStatus}
-            />
-          ))}
-        </View>
 
         {Platform.OS === "web" && <WebBadge />}
       </View>
