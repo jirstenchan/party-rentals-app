@@ -12,9 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AccountButton } from "@/components/settings/account-controls";
+import {
+  ReservationPeriodTabs,
+  type ReservationPeriod,
+} from "@/components/settings/reservation-period-tabs";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, MaxContentWidth, Radius, Spacing } from "@/constants/theme";
+import { useReservationPeriods } from "@/hooks/use-reservation-periods";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchMyTickets, type MyTicket } from "@/lib/reservation-api";
 
@@ -89,6 +94,7 @@ function TicketCard({ ticket }: { ticket: MyTicket }) {
 export default function MyTicketsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const [view, setView] = useState<ReservationPeriod>("Upcoming");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [tickets, setTickets] = useState<MyTicket[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,11 +128,12 @@ export default function MyTicketsScreen() {
     }, [loadTickets]),
   );
 
-  const hasTickets = !!tickets?.length;
+  const { upcoming, history } = useReservationPeriods(tickets);
+  const viewTickets = view === "Upcoming" ? upcoming : history;
   const visibleTickets =
     filter === "All"
-      ? (tickets ?? undefined)
-      : tickets?.filter((ticket) => ticket.reservationStatus === filter);
+      ? viewTickets
+      : viewTickets.filter((ticket) => ticket.reservationStatus === filter);
 
   return (
     <ThemedView style={styles.fill}>
@@ -161,25 +168,42 @@ export default function MyTicketsScreen() {
           </Pressable>
         </View>
 
-        {hasTickets && (
-          <ThemedView type="backgroundElement" style={styles.filters}>
+        <ReservationPeriodTabs
+          period={view}
+          onChange={(period) => {
+            setView(period);
+            setFilter("All");
+          }}
+          style={styles.tabs}
+        />
+
+        {viewTickets.length > 0 && (
+          <View style={styles.filters}>
             {FILTERS.map((label) => (
               <Pressable
                 key={label}
                 onPress={() => setFilter(label)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: filter === label }}
-                style={[styles.filter, filter === label && styles.selectedFilter]}
+                style={({ pressed }) => [
+                  styles.filter,
+                  {
+                    backgroundColor:
+                      filter === label || pressed
+                        ? theme.backgroundSelected
+                        : theme.backgroundElement,
+                  },
+                ]}
               >
                 <ThemedText
                   type="smallBold"
-                  style={filter === label ? styles.selectedLabel : undefined}
+                  themeColor={filter === label ? "text" : "textSecondary"}
                 >
                   {label}
                 </ThemedText>
               </Pressable>
             ))}
-          </ThemedView>
+          </View>
         )}
 
         {tickets === null && loading ? (
@@ -191,6 +215,7 @@ export default function MyTicketsScreen() {
           </View>
         ) : (
           <FlatList
+            key={view}
             style={styles.fill}
             contentContainerStyle={styles.list}
             data={visibleTickets}
@@ -226,9 +251,11 @@ export default function MyTicketsScreen() {
                     />
                   </View>
                   <ThemedText style={styles.eventName}>
-                    {hasTickets
+                    {viewTickets.length > 0
                       ? `No ${filter.toLowerCase()} tickets`
-                      : "No pending or confirmed tickets"}
+                      : view === "Upcoming"
+                        ? "No upcoming tickets"
+                        : "No ticket history yet"}
                   </ThemedText>
                 </View>
               )
@@ -262,23 +289,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  tabs: { marginBottom: Spacing.three },
   filters: {
     flexDirection: "row",
-    borderRadius: Radius.medium,
-    padding: Spacing.one,
-    gap: Spacing.one,
+    flexWrap: "wrap",
+    gap: Spacing.two,
     marginBottom: Spacing.three,
   },
   filter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     minHeight: 44,
+    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    borderRadius: Radius.small,
+    justifyContent: "center",
+    borderRadius: Radius.full,
   },
-  selectedFilter: { backgroundColor: BrandColors.purple },
-  selectedLabel: { color: BrandColors.white },
   list: { gap: Spacing.three, paddingBottom: Spacing.four },
   card: { padding: Spacing.three, borderRadius: Radius.large, gap: Spacing.three },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.two },

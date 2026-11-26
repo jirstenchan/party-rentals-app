@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import {
@@ -9,8 +9,13 @@ import {
   AccountMessage,
   AccountSettingsPage,
 } from "@/components/settings/account-controls";
+import {
+  ReservationPeriodTabs,
+  type ReservationPeriod,
+} from "@/components/settings/reservation-period-tabs";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { useReservationPeriods } from "@/hooks/use-reservation-periods";
 import {
   formatTableHoldTime,
   tableHoldSeconds,
@@ -41,7 +46,7 @@ function GuestList({
   onSaved,
 }: {
   booking: MyTableReservation;
-  onSaved: (names: string[]) => void;
+  onSaved?: (names: string[]) => void;
 }) {
   const [draft, setDraft] = useState([""]);
   const [saving, setSaving] = useState(false);
@@ -54,7 +59,8 @@ function GuestList({
   const names = draft.map((name) => name.trim()).filter(Boolean);
 
   async function save() {
-    if (saving || names.length === 0 || names.length > remaining) return;
+    if (!onSaved || saving || names.length === 0 || names.length > remaining)
+      return;
     setSaving(true);
     setError("");
     setSaved(false);
@@ -85,7 +91,7 @@ function GuestList({
           {index + 1}. {name}
         </ThemedText>
       ))}
-      {remaining > 0 ? (
+      {onSaved && remaining > 0 && (
         <>
           {draft.slice(0, remaining).map((name, index) => (
             <AccountField
@@ -117,7 +123,8 @@ function GuestList({
             disabled={names.length === 0 || names.length > remaining}
           />
         </>
-      ) : (
+      )}
+      {onSaved && remaining <= 0 && (
         <ThemedText type="small" themeColor="textSecondary">
           All seats have a guest name.
         </ThemedText>
@@ -130,16 +137,23 @@ function GuestList({
 
 export default function MyTablesScreen() {
   const router = useRouter();
+  const [period, setPeriod] = useState<ReservationPeriod>("Upcoming");
   const [bookings, setBookings] = useState<MyTableReservation[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState("");
   const request = useRef<AbortController | null>(null);
-  const visibleBookings = bookings?.filter(
-    (booking) => booking.reservationStatus !== "Cancelled",
+  const reservations = useMemo(
+    () =>
+      bookings?.filter((booking) => booking.reservationStatus !== "Cancelled") ??
+      null,
+    [bookings],
   );
+  const { upcoming, history } = useReservationPeriods(reservations);
+  const isUpcoming = period === "Upcoming";
+  const visibleBookings = isUpcoming ? upcoming : history;
   const now = useTableHoldClock(
-    visibleBookings?.some((booking) => !!booking.expiresAt) ?? false,
+    visibleBookings.some((booking) => !!booking.expiresAt),
   );
 
   const load = useCallback(async () => {
@@ -192,8 +206,20 @@ export default function MyTablesScreen() {
     }
   }
 
+  function updateGuestNames(reservationItemId: string, guestNames: string[]) {
+    setBookings(
+      (current) =>
+        current?.map((booking) =>
+          booking.reservationItemId === reservationItemId
+            ? { ...booking, guestNames }
+            : booking,
+        ) ?? null,
+    );
+  }
+
   return (
     <AccountSettingsPage title="My Tables">
+      <ReservationPeriodTabs period={period} onChange={setPeriod} />
       {bookings === null && loading ? (
         <ActivityIndicator />
       ) : (
@@ -206,10 +232,14 @@ export default function MyTablesScreen() {
             secondary
           />
           {error && <AccountMessage error>{error}</AccountMessage>}
-          {visibleBookings?.length === 0 && (
-            <AccountMessage>No table reservations yet.</AccountMessage>
+          {!error && bookings !== null && visibleBookings.length === 0 && (
+            <AccountMessage>
+              {isUpcoming
+                ? "No upcoming table reservations."
+                : "No table reservation history yet."}
+            </AccountMessage>
           )}
-          {visibleBookings?.map((booking) => {
+          {visibleBookings.map((booking) => {
             const secondsLeft = tableHoldSeconds(booking.expiresAt, now);
             const state = secondsLeft === 0 ? "Expired" : booking.reservationStatus;
             const pending = state === "Pending";
@@ -231,12 +261,12 @@ export default function MyTablesScreen() {
                   {booking.unitPrice === 0 ? "Free" : price.format(booking.unitPrice)}
                 </ThemedText>
                 <ThemedText type="smallBold">{status}</ThemedText>
-                {needsPayment && secondsLeft !== null && (
+                {isUpcoming && needsPayment && secondsLeft !== null && (
                   <ThemedText type="small">
                     Time left to submit proof {formatTableHoldTime(secondsLeft)}
                   </ThemedText>
                 )}
-                {needsPayment && (
+                {isUpcoming && needsPayment && (
                   <AccountButton
                     label="Submit payment proof"
                     disabled={loading || cancelling !== null}
@@ -251,7 +281,7 @@ export default function MyTablesScreen() {
                     }
                   />
                 )}
-                {canCancel && (
+                {isUpcoming && canCancel && (
                   <AccountButton
                     label="Cancel reservation"
                     onPress={() => cancel(booking.reservationItemId)}
@@ -260,20 +290,17 @@ export default function MyTablesScreen() {
                     secondary
                   />
                 )}
-                {booking.reservationStatus === "Confirmed" && (
-                  <GuestList
-                    booking={booking}
-                    onSaved={(guestNames) => {
-                      setBookings((current) =>
-                        current?.map((row) =>
-                          row.reservationItemId === booking.reservationItemId
-                            ? { ...row, guestNames }
-                            : row,
-                        ) ?? null,
-                      );
-                    }}
-                  />
-                )}
+                {booking.reservationStatus === "Confirmed" &&
+                  (isUpcoming || booking.guestNames.length > 0) && (
+                    <GuestList
+                      booking={booking}
+                      onSaved={
+                        isUpcoming
+                          ? (names) => updateGuestNames(booking.reservationItemId, names)
+                          : undefined
+                      }
+                    />
+                  )}
               </AccountCard>
             );
           })}
