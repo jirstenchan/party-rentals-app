@@ -1,6 +1,6 @@
 import { BrandColors } from "@/constants/theme";
 import { createThemeStyles } from "@/hooks/use-theme";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
@@ -37,14 +37,14 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [useSalesWindow, setUseSalesWindow] = useState(false);
-  const [salesStart, setSalesStart] = useState(new Date());
-  const [salesEnd, setSalesEnd] = useState(new Date(Date.now() + WEEK));
+  const [salesStart, setSalesStart] = useState(() => new Date());
+  const [salesEnd, setSalesEnd] = useState(() => new Date(Date.now() + WEEK));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [mounted, setMounted] = useState(visible);
-  const scale = useRef(new Animated.Value(0.8)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [scale] = useState(() => new Animated.Value(0.8));
+  const [opacity] = useState(() => new Animated.Value(0));
 
   function playPop() {
     Animated.parallel([
@@ -100,7 +100,8 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
   }, [visible]);
 
   async function handleSave() {
-    const priceNumber = parseFloat(price);
+    if (saving) return;
+    const priceNumber = Number(price);
     const start = toDateOnly(salesStart);
     const end = toDateOnly(salesEnd);
 
@@ -109,7 +110,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
       return;
     }
 
-    if (Number.isNaN(priceNumber) || priceNumber < 0) {
+    if (!price.trim() || !Number.isFinite(priceNumber) || priceNumber < 0) {
       setError("Enter a valid price (use 0 for free).");
       return;
     }
@@ -131,7 +132,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
 
       onClose();
     } catch (e) {
-      setError("Add failed: " + problemFor(e));
+      setError(e instanceof Error && e.message ? e.message : problemFor(e));
     } finally {
       setSaving(false);
     }
@@ -194,9 +195,12 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
             </>
           )}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+          ) : null}
 
           <Pressable
+            accessibilityRole="button"
             onPress={handleSave}
             disabled={saving}
             style={[styles.saveButton, saving && styles.disabled]}
@@ -207,6 +211,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
           </Pressable>
 
           <Pressable
+            accessibilityRole="button"
             onPress={onClose}
             disabled={saving}
             style={styles.cancelButton}

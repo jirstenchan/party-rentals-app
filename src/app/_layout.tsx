@@ -85,6 +85,7 @@ function RootNavigator() {
           <Stack.Protected guard={!!seen && !!session}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="event" />
+            <Stack.Screen name="my-events" />
             <Stack.Screen name="my-tickets" />
             <Stack.Screen name="my-tables" />
             <Stack.Screen name="settings" />

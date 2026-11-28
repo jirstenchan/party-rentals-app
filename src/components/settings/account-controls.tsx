@@ -23,11 +23,13 @@ import type { AccountTier } from "@/lib/account-api";
 export function AccountSettingsPage({
   title,
   children,
+  onBack,
   refreshing = false,
   onRefresh,
 }: {
   title: string;
   children: ReactNode;
+  onBack?: () => void;
   refreshing?: boolean;
   onRefresh?: () => void;
 }) {
@@ -38,9 +40,9 @@ export function AccountSettingsPage({
       <SafeAreaView style={styles.fill}>
         <View style={styles.header}>
           <Pressable
-            onPress={() =>
+            onPress={onBack ?? (() =>
               router.canGoBack() ? router.back() : router.replace("/settings")
-            }
+            )}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Go back"

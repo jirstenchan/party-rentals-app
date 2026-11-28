@@ -1,8 +1,8 @@
 import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -18,6 +18,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius } from "@/constants/theme";
+import { isUpcomingEvent, useEventStartClock } from "@/hooks/use-event-start-clock";
+import { useSession } from "@/hooks/use-session";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
 
 const MARGIN = 25;
@@ -106,6 +108,7 @@ export default function EventDetailsScreen() {
   const { theme, styles } = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const session = useSession();
   const { width } = useWindowDimensions();
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -114,6 +117,8 @@ export default function EventDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const now = useEventStartClock(event ? [event] : []);
+  const canEdit = !!event && session?.user.id === event.hostId && isUpcomingEvent(event, now);
 
   const coverWidth = width - MARGIN * 2;
 
@@ -140,13 +145,15 @@ export default function EventDetailsScreen() {
     }
   }, [id]);
 
-  useEffect(() => {
-    setLoading(true);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
 
-    loadEvent().finally(() => {
-      setLoading(false);
-    });
-  }, [loadEvent]);
+      loadEvent().finally(() => {
+        setLoading(false);
+      });
+    }, [loadEvent]),
+  );
 
   // Pull-to-refresh.
   const onRefresh = async () => {
@@ -195,14 +202,6 @@ export default function EventDetailsScreen() {
             />
           </Pressable>
 
-          {/* TODO: Hook up the options menu */}
-          <Pressable
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="More options"
-          >
-            <Ionicons name="ellipsis-vertical" size={24} color={theme.accent} />
-          </Pressable>
         </View>
 
         {/* Loading State */}
@@ -294,6 +293,21 @@ export default function EventDetailsScreen() {
                 </View>
               </View>
 
+              {canEdit && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit Event"
+                  style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
+                  onPress={() => router.push({
+                    pathname: "/event/[id]/edit",
+                    params: { id: event.id },
+                  })}
+                >
+                  <Ionicons name="pencil-outline" size={20} color={theme.accent} />
+                  <ThemedText themeColor="accent" type="smallBold">Edit Event</ThemedText>
+                </Pressable>
+              )}
+
               {/* Event Details */}
               <View style={styles.details}>
                 {/* Date */}
@@ -378,6 +392,7 @@ export default function EventDetailsScreen() {
               <ThemedText style={styles.aboutBody}>
                 {event.description || "No event description available."}
               </ThemedText>
+
             </ScrollView>
 
             {/* Pinned CTA */}
@@ -586,4 +601,14 @@ const useStyles = createThemeStyles((theme) => StyleSheet.create({
     fontWeight: "700",
   },
   pressed: { opacity: 0.85 },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 48,
+    marginTop: 16,
+    borderRadius: Radius.medium,
+    backgroundColor: theme.accentSurface,
+  },
 }));

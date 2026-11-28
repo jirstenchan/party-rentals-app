@@ -35,25 +35,6 @@ export default function AccountScreen() {
   const [eventCount, setEventCount] = useState<number | null>(null);
   const [reservationCount, setReservationCount] = useState<number | null>(null);
 
-  //Getting the total number of events created by the user logged in
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-
-      fetchEvents("mine")
-        .then((events) => {
-          if (active) setEventCount(events.length);
-        })
-        .catch(() => {
-          if (active) setEventCount(null);
-        });
-
-      return () => {
-        active = false;
-      };
-    }, []),
-  );
-
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -183,7 +164,9 @@ export default function AccountScreen() {
                     ? () => router.push("/my-tickets")
                     : a.id === "tables"
                       ? () => router.push("/my-tables")
-                      : undefined
+                      : a.id === "events"
+                        ? () => router.push("/my-events")
+                        : undefined
                 }
                 accessibilityRole="button"
                 accessibilityLabel={a.label}
@@ -196,24 +179,16 @@ export default function AccountScreen() {
             ))}
           </View>
 
-          {/* Edit Profile */}
-          <Pressable
-            onPress={() => router.push("/settings/personal-information")}
-            style={({ pressed }) => [
-              styles.editButton,
-              pressed && styles.pressed,
-            ]}
-            accessibilityRole="button"
-          >
-            <Ionicons name="pencil-outline" size={22} color={theme.accent} />
-            <ThemedText style={styles.editText}>Edit Profile</ThemedText>
-          </Pressable>
-
           {/* History header */}
           <View style={styles.sectionHeader}>
             <ThemedText style={styles.sectionTitle}>My Events</ThemedText>
-            {/* TODO: hook up the full history screen */}
-            <Pressable style={styles.seeAll} hitSlop={8}>
+            <Pressable
+              onPress={() => router.push({ pathname: "/my-events", params: { view: "all" } })}
+              accessibilityRole="button"
+              accessibilityLabel="See all my events"
+              style={styles.seeAll}
+              hitSlop={8}
+            >
               <ThemedText style={styles.seeAllText}>See All</ThemedText>
               <Ionicons name="chevron-forward" size={20} color={theme.accent} />
             </Pressable>
@@ -224,7 +199,8 @@ export default function AccountScreen() {
         <EventList
           scope="mine"
           showStatus
-          emptyText="You haven't created any events yet."
+          upcomingOnly
+          emptyText="You have no upcoming events."
         />
       </SafeAreaView>
     </ThemedView>
@@ -354,25 +330,6 @@ const useStyles = createThemeStyles((theme) => StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Edit Profile
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    height: 40,
-    borderRadius: Radius.small,
-    backgroundColor: theme.accentSurface,
-    marginTop: Spacing.two,
-  },
-  editText: {
-    color: theme.accent,
-    fontSize: 16,
-    lineHeight: 26,
-    fontWeight: "600",
-    transform: [{ translateX: -5 }],
-  },
-
   // History
   sectionHeader: {
     flexDirection: "row",
@@ -397,8 +354,4 @@ const useStyles = createThemeStyles((theme) => StyleSheet.create({
     fontWeight: "700",
   },
 
-  // Button
-  pressed: {
-    opacity: 0.85,
-  },
 }));

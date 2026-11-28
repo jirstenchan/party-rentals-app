@@ -221,7 +221,6 @@ export function DateTimePartField({
       onChange: (event: { target: { value: string } }) =>
         onChange(event.target.value),
       style: {
-        flex: 1,
         minWidth: 0,
         padding: 12,
         fontSize: 15,
@@ -333,7 +332,6 @@ const useStyles = createThemeStyles((theme) => StyleSheet.create({
     backgroundColor: theme.surface,
   },
   partButton: {
-    flex: 1,
     justifyContent: "center",
     minHeight: 48,
   },

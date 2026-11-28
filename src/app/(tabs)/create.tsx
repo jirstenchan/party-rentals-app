@@ -1,7 +1,7 @@
 import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useRef, useState, type ComponentRef } from "react";
 import {
   Platform,
   Pressable,
@@ -29,6 +29,7 @@ export default function CreateEventScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const setTabBarHidden = useSetTabBarHidden();
   const scrollAnchor = useRef(0);
+  const scrollView = useRef<ComponentRef<typeof ScrollView>>(null);
 
   const [events, setEvents] = useState<Event[]>([]);
   const [status, setStatus] = useState("");
@@ -50,6 +51,16 @@ export default function CreateEventScreen() {
       paddingBottom: Spacing.four,
     },
   });
+
+  function scrollToInvalidField(field: ComponentRef<typeof View>) {
+    const scroll = scrollView.current;
+    const content = scroll?.getInnerViewRef();
+    if (!scroll || !content) return;
+
+    field.measureLayout(content, (_x, y) => {
+      scroll.scrollTo({ y: y - insets.top - Spacing.two, animated: true });
+    });
+  }
 
   function handleScroll({
     nativeEvent,
@@ -99,6 +110,7 @@ export default function CreateEventScreen() {
 
   return (
     <ScrollView
+      ref={scrollView}
       style={styles.scrollView}
       keyboardShouldPersistTaps="handled"
       contentInset={insets}
@@ -120,7 +132,10 @@ export default function CreateEventScreen() {
           <Text style={styles.headerTitle}>CREATE EVENT</Text>
         </View>
 
-        <CreateEventForm onCreated={handleRefresh} />
+        <CreateEventForm
+          onCreated={handleRefresh}
+          onInvalidField={scrollToInvalidField}
+        />
 
         {Platform.OS === "web" && <WebBadge />}
       </View>
