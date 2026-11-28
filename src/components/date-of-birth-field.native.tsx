@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, {
   DateTimePickerAndroid,
@@ -29,6 +30,7 @@ function initialDate(value: string): Date {
 }
 
 export function DateOfBirthField({ value, onChange, disabled }: Props) {
+  const { scheme, theme, styles } = useStyles();
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState(() => initialDate(value));
 
@@ -61,7 +63,7 @@ export function DateOfBirthField({ value, onChange, disabled }: Props) {
         accessibilityState={{ disabled: !!disabled }}
         style={styles.field}
       >
-        <Ionicons name="calendar-outline" size={24} color="#000000" />
+        <Ionicons name="calendar-outline" size={24} color={theme.text} />
         <Text style={[styles.value, !value && styles.placeholder]}>
           {value
             ? initialDate(value).toLocaleDateString(undefined, {
@@ -88,7 +90,7 @@ export function DateOfBirthField({ value, onChange, disabled }: Props) {
                 mode="date"
                 display="spinner"
                 maximumDate={new Date()}
-                themeVariant="light"
+                themeVariant={scheme}
                 onValueChange={(_, selected) => setDraft(selected)}
               />
               <View style={styles.actions}>
@@ -118,29 +120,29 @@ export function DateOfBirthField({ value, onChange, disabled }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { gap: 8 },
-  label: { fontSize: 16, fontWeight: "600", color: "#000000" },
+  label: { fontSize: 16, fontWeight: "600", color: theme.text },
   field: {
     height: 56,
     borderRadius: 15,
     borderWidth: 1.5,
-    borderColor: "#D1D1D6",
+    borderColor: theme.controlBorder,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
     gap: 16,
   },
-  value: { flex: 1, fontSize: 16, fontWeight: "600", color: "#000000" },
-  placeholder: { color: "#60646C" },
-  hint: { fontSize: 14, color: "#60646C" },
+  value: { flex: 1, fontSize: 16, fontWeight: "600", color: theme.text },
+  placeholder: { color: theme.textSecondary },
+  hint: { fontSize: 14, color: theme.textSecondary },
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
     backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   sheet: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     padding: 24,
     paddingBottom: 40,
     borderTopLeftRadius: 20,
@@ -148,5 +150,5 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: "row", justifyContent: "space-between" },
   action: { minHeight: 44, paddingHorizontal: 16, justifyContent: "center" },
-  actionText: { fontSize: 17, fontWeight: "600", color: "#6C2CF5" },
-});
+  actionText: { fontSize: 17, fontWeight: "600", color: theme.accent },
+}));

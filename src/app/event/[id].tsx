@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -19,8 +20,6 @@ import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius } from "@/constants/theme";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
 
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
 const MARGIN = 25;
 const COVER_HEIGHT = 180;
 
@@ -104,6 +103,7 @@ const formatPeso = (price: number) =>
   }).format(price);
 
 export default function EventDetailsScreen() {
+  const { theme, styles } = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -176,7 +176,7 @@ export default function EventDetailsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="chevron-back" size={20} color={PURPLE} />
+            <Ionicons name="chevron-back" size={20} color={theme.accent} />
           </Pressable>
 
           <ThemedText style={styles.headerTitle}>EVENT DETAILS</ThemedText>
@@ -191,7 +191,7 @@ export default function EventDetailsScreen() {
             <Ionicons
               name={isFavorite ? "heart" : "heart-outline"}
               size={26}
-              color={PURPLE}
+              color={theme.accent}
             />
           </Pressable>
 
@@ -201,14 +201,14 @@ export default function EventDetailsScreen() {
             accessibilityRole="button"
             accessibilityLabel="More options"
           >
-            <Ionicons name="ellipsis-vertical" size={24} color={PURPLE} />
+            <Ionicons name="ellipsis-vertical" size={24} color={theme.accent} />
           </Pressable>
         </View>
 
         {/* Loading State */}
         {loading ? (
           <View style={styles.stateContainer}>
-            <ActivityIndicator size="large" color={PURPLE} />
+            <ActivityIndicator size="large" color={theme.accent} />
             <ThemedText style={styles.stateText}>
               Loading event details...
             </ThemedText>
@@ -216,7 +216,7 @@ export default function EventDetailsScreen() {
         ) : error ? (
           /* Error State */
           <View style={styles.stateContainer}>
-            <Ionicons name="alert-circle-outline" size={42} color={PURPLE} />
+            <Ionicons name="alert-circle-outline" size={42} color={theme.accent} />
 
             <ThemedText style={styles.stateText}>{error}</ThemedText>
 
@@ -243,7 +243,7 @@ export default function EventDetailsScreen() {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  tintColor={PURPLE}
+                  tintColor={theme.accent}
                 />
               }
             >
@@ -260,7 +260,7 @@ export default function EventDetailsScreen() {
                   />
                 ) : (
                   <View style={styles.imagePlaceholder}>
-                    <Ionicons name="image-outline" size={40} color={PURPLE} />
+                    <Ionicons name="image-outline" size={40} color={theme.accent} />
                     <ThemedText style={styles.placeholderText}>
                       No event image available
                     </ThemedText>
@@ -279,7 +279,7 @@ export default function EventDetailsScreen() {
                   />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={28} color={PURPLE} />
+                    <Ionicons name="person" size={28} color={theme.accent} />
                   </View>
                 )}
 
@@ -299,7 +299,7 @@ export default function EventDetailsScreen() {
                 {/* Date */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailIcon}>
-                    <Ionicons name="calendar" size={22} color={PURPLE} />
+                    <Ionicons name="calendar" size={22} color={theme.accent} />
                   </View>
 
                   <ThemedText style={styles.detailLine}>
@@ -310,7 +310,7 @@ export default function EventDetailsScreen() {
                 {/* Time */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailIcon}>
-                    <Ionicons name="time" size={22} color={PURPLE} />
+                    <Ionicons name="time" size={22} color={theme.accent} />
                   </View>
 
                   <ThemedText style={styles.detailLine}>
@@ -321,7 +321,7 @@ export default function EventDetailsScreen() {
                 {/* Location */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailIcon}>
-                    <Ionicons name="location" size={28} color={PURPLE} />
+                    <Ionicons name="location" size={28} color={theme.accent} />
                   </View>
 
                   <View style={styles.detailText}>
@@ -355,7 +355,7 @@ export default function EventDetailsScreen() {
                       <Ionicons
                         name="people-outline"
                         size={28}
-                        color={PURPLE}
+                        color={theme.accent}
                       />
                     </View>
 
@@ -403,7 +403,7 @@ export default function EventDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
 
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     marginLeft: 10,
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "800",
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: Radius.large,
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     height: COVER_HEIGHT,
     borderRadius: Radius.large,
     overflow: "hidden",
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
   },
   imagePlaceholder: {
     flex: 1,
@@ -489,13 +489,13 @@ const styles = StyleSheet.create({
     width: 55,
     height: 55,
     borderRadius: Radius.full,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
   },
   avatarPlaceholder: {
     width: 55,
     height: 55,
     borderRadius: Radius.full,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     width: 23,
     height: 23,
     borderRadius: Radius.full,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
     marginTop: 16,
   },
 
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   cta: {
     height: 55,
     borderRadius: Radius.large,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -586,4 +586,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   pressed: { opacity: 0.85 },
-});
+}));

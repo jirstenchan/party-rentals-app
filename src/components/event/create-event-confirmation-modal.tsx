@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -22,6 +23,7 @@ export function ConfirmCreateModal({
   onCancel,
   onConfirm,
 }: ConfirmCreateModalProps) {
+  const { theme, styles } = useStyles();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -91,7 +93,7 @@ export function ConfirmCreateModal({
               <Ionicons
                 name="document-text-outline"
                 size={54}
-                color={BrandColors.purple}
+                color={theme.accent}
               />
             </View>
             <View style={styles.checkBadge}>
@@ -140,7 +142,7 @@ export function ConfirmCreateModal({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   backdrop: {
     flex: 1,
     alignItems: "center",
@@ -152,7 +154,7 @@ const styles = StyleSheet.create({
     width: "90%",
     maxWidth: 340,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingTop: 18,
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
     width: 82,
     height: 82,
     borderRadius: 40,
-    backgroundColor: "#F1EDFC",
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -180,7 +182,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 3,
-    borderColor: "#FFFFFF",
+    borderColor: theme.surface,
     backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
@@ -191,20 +193,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 24,
     fontWeight: "800",
-    color: "#000",
+    color: theme.text,
     textAlign: "center",
   },
   question: {
     marginTop: 10,
     fontSize: 14,
-    color: "#000",
+    color: theme.text,
     textAlign: "center",
   },
   note: {
     marginTop: 12,
     fontSize: 14,
     lineHeight: 20,
-    color: "#6E6E78",
+    color: theme.textSecondary,
     textAlign: "center",
   },
 
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cancelButton: {
-    backgroundColor: "#CDCDCD",
+    backgroundColor: theme.backgroundSelected,
   },
   confirmButton: {
     backgroundColor: BrandColors.purple,
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   cancelText: {
-    color: "#000",
+    color: theme.text,
   },
   confirmText: {
     color: "#FFFFFF",
@@ -241,4 +243,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
   },
-});
+}));

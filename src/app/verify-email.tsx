@@ -1,3 +1,5 @@
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -23,6 +25,7 @@ import {
 } from "@/lib/email-verification";
 
 export default function VerifyEmailScreen() {
+  const { scheme, theme, styles } = useStyles();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
   const initialEmail =
@@ -122,7 +125,11 @@ export default function VerifyEmailScreen() {
 
   return (
     <ImageBackground
-      source={require("../../assets/images/setup/bg-design.png")}
+      source={
+        scheme === "light"
+          ? require("../../assets/images/setup/bg-design.png")
+          : undefined
+      }
       style={styles.fill}
       resizeMode="cover"
     >
@@ -142,11 +149,11 @@ export default function VerifyEmailScreen() {
               accessibilityLabel="Back to login"
               style={styles.back}
             >
-              <Ionicons name="chevron-back" size={24} color={PURPLE} />
+              <Ionicons name="chevron-back" size={24} color={theme.accent} />
               <Text style={styles.link}>Back to login</Text>
             </Pressable>
             <View style={styles.card}>
-              <Ionicons name="mail-open-outline" size={48} color={PURPLE} />
+              <Ionicons name="mail-open-outline" size={48} color={theme.accent} />
               <Text style={styles.title}>Verify your email</Text>
               <Text style={styles.body}>
                 Enter the 6-digit code sent to your email to finish creating
@@ -161,7 +168,8 @@ export default function VerifyEmailScreen() {
                 }}
                 accessibilityLabel="Signup email address"
                 placeholder="Email used to sign up"
-                placeholderTextColor="#60646C"
+                placeholderTextColor={theme.textSecondary}
+                keyboardAppearance={scheme}
                 keyboardType="email-address"
                 autoComplete="email"
                 autoCapitalize="none"
@@ -177,7 +185,8 @@ export default function VerifyEmailScreen() {
                 }
                 accessibilityLabel="6-digit email verification code"
                 placeholder="123456"
-                placeholderTextColor="#60646C"
+                placeholderTextColor={theme.textSecondary}
+                keyboardAppearance={scheme}
                 keyboardType="number-pad"
                 inputMode="numeric"
                 autoComplete="one-time-code"
@@ -280,9 +289,8 @@ export default function VerifyEmailScreen() {
   );
 }
 
-const PURPLE = "#6C2CF5";
-const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: "#FFFFFF" },
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
+  fill: { flex: 1, backgroundColor: theme.background },
   content: { flexGrow: 1, padding: 24, gap: 24 },
   back: {
     minHeight: 44,
@@ -292,37 +300,37 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   card: { gap: 16, paddingTop: 20 },
-  title: { fontSize: 32, fontWeight: "800", color: "#000000" },
-  body: { fontSize: 16, lineHeight: 24, color: "#333333" },
-  label: { fontSize: 15, fontWeight: "600", color: "#000000" },
+  title: { fontSize: 32, fontWeight: "800", color: theme.text },
+  body: { fontSize: 16, lineHeight: 24, color: theme.textSecondary },
+  label: { fontSize: 15, fontWeight: "600", color: theme.text },
   input: {
     minHeight: 56,
     borderWidth: 1.5,
-    borderColor: "#D1D1D6",
+    borderColor: theme.controlBorder,
     borderRadius: 15,
     paddingHorizontal: 20,
     fontSize: 16,
-    color: "#000000",
-    backgroundColor: "#FFFFFF",
+    color: theme.text,
+    backgroundColor: theme.surface,
   },
   code: { fontSize: 26, letterSpacing: 8, textAlign: "center" },
   button: {
     minHeight: 56,
     borderRadius: 15,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     padding: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   secondary: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderWidth: 1.5,
-    borderColor: PURPLE,
+    borderColor: theme.accent,
   },
   buttonText: { fontSize: 18, fontWeight: "600", color: "#FFFFFF" },
-  link: { color: PURPLE, fontSize: 16, fontWeight: "600" },
+  link: { color: theme.accent, fontSize: 16, fontWeight: "600" },
   dimmed: { opacity: 0.5 },
-  problem: { color: "#D93025", fontSize: 15 },
-  notice: { color: PURPLE, fontSize: 15 },
-  hint: { color: "#60646C", fontSize: 14, lineHeight: 21 },
-});
+  problem: { color: theme.danger, fontSize: 15 },
+  notice: { color: theme.accent, fontSize: 15 },
+  hint: { color: theme.textSecondary, fontSize: 14, lineHeight: 21 },
+}));

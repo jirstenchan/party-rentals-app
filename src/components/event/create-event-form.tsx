@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { ConfirmCreateModal } from "@/components/event/create-event-confirmation-modal";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
@@ -14,7 +15,7 @@ import { TicketDraftList } from "@/components/event/ticket-draft-list";
 
 import { TableModal } from "@/components/event/table-modal";
 import { TicketModal } from "@/components/event/ticket-modal";
-import { Radius } from "@/constants/theme";
+import { BrandColors, Radius } from "@/constants/theme";
 import { createEvent, deleteEvent } from "@/data/event";
 import {
   deleteEventGraphic,
@@ -29,7 +30,6 @@ import { problemFor } from "@/data/problem";
 import { addTable, NewTable } from "@/data/table";
 import { addTicket, NewTicket } from "@/data/ticket";
 
-const PURPLE = "#6B2CF5";
 
 type Props = {
   onCreated: () => void | Promise<void>;
@@ -41,6 +41,7 @@ type EventSchedule = {
 };
 
 export function CreateEventForm({ onCreated }: Props) {
+  const { theme, styles } = useStyles();
   const [scheduleToConfirm, setScheduleToConfirm] =
     useState<EventSchedule | null>(null);
   const [name, setName] = useState("");
@@ -251,7 +252,7 @@ export function CreateEventForm({ onCreated }: Props) {
             />
           ) : (
             <View style={styles.coverPhoto}>
-              <Ionicons name="image-outline" size={32} color="#8A8A93" />
+              <Ionicons name="image-outline" size={32} color={theme.textSecondary} />
             </View>
           )}
         </ImagePickerField>
@@ -330,7 +331,7 @@ export function CreateEventForm({ onCreated }: Props) {
         value={location}
         onChangeText={setLocation}
         placeholder="Where is it happening?"
-        icon={<Ionicons name="location-outline" size={30} color="#000" />}
+        icon={<Ionicons name="location-outline" size={30} color={theme.text} />}
         cardStyle={styles.venueCard}
       />
 
@@ -369,7 +370,7 @@ export function CreateEventForm({ onCreated }: Props) {
           />
         ) : (
           <View style={styles.mapPlaceholder}>
-            <Ionicons name="image-outline" size={72} color="#85858F" />
+            <Ionicons name="image-outline" size={72} color={theme.textSecondary} />
             <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
           </View>
         )}
@@ -403,7 +404,7 @@ export function CreateEventForm({ onCreated }: Props) {
           />
         ) : (
           <View style={styles.mapPlaceholder}>
-            <Ionicons name="image-outline" size={72} color="#85858F" />
+            <Ionicons name="image-outline" size={72} color={theme.textSecondary} />
             <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
           </View>
         )}
@@ -492,7 +493,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
 const COVER_PHOTO_SIZE = 96;
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   form: {
     gap: 14,
   },
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
     width: COVER_PHOTO_SIZE,
     height: COVER_PHOTO_SIZE,
     borderRadius: 14,
-    backgroundColor: "#E6E3F5",
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
   scheduleLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   scheduleRow: {
     flexDirection: "row",
@@ -562,17 +563,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   sectionAction: {
     fontSize: 16,
     fontWeight: "500",
-    color: PURPLE,
+    color: theme.accent,
   },
   mapPlaceholder: {
     height: 300,
     borderRadius: 20,
-    backgroundColor: "#EBEBEB",
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -580,18 +581,18 @@ const styles = StyleSheet.create({
   mapPlaceholderText: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#85858F",
+    color: theme.textSecondary,
   },
   status: {
-    color: "#000",
+    color: theme.text,
     fontSize: 14,
     textAlign: "center",
   },
   statusError: {
-    color: "#D93025",
+    color: theme.danger,
   },
   createButton: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     height: 55,
     borderRadius: Radius.large,
     alignItems: "center",
@@ -622,4 +623,4 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 8,
   },
-});
+}));

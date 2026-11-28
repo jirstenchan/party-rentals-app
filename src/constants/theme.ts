@@ -7,37 +7,60 @@ import "@/global.css";
 
 import { Platform } from "react-native";
 
-export const Colors = {
-  light: {
-    text: "#000000",
-    background: "#ffffff",
-    backgroundElement: "#F0F0F3",
-    backgroundSelected: "#E0E1E6",
-    textSecondary: "#60646C",
-  },
-  dark: {
-    text: "#ffffff",
-    background: "#000000",
-    backgroundElement: "#212225",
-    backgroundSelected: "#2E3135",
-    textSecondary: "#B0B4BA",
-  },
-} as const;
-
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-/** Brand colors used across screens (same in light and dark mode). */
+/** Fixed brand colors for artwork and filled controls. */
 export const BrandColors = {
   purple: "#6B2CF5",
   border: "#D4D4D4",
   muted: "#B3B3B3",
-  error: "#D93025",
-  pressed: "#6B2CF5", // 85%
-
-  // new (from home ui)
+  error: "#B42318",
+  pressed: "#6B2CF5",
   white: "#FFFFFF",
   black: "#000000",
 } as const;
+
+export const Colors = {
+  light: {
+    background: "#FFFFFF",
+    surface: "#FFFFFF",
+    backgroundElement: "#F0F0F3",
+    backgroundSelected: "#E0E1E6",
+    text: "#000000",
+    textSecondary: "#60646C",
+    border: "#D4D4D4",
+    controlBorder: "#857F8C",
+    accent: BrandColors.purple,
+    accentSurface: "#F1EDFC",
+    accentSurfacePressed: "#E2D5FA",
+    danger: "#B42318",
+    dangerSurface: "#FDEFF0",
+    warning: "#854D0E",
+    warningSurface: "#FDF0DA",
+    success: "#166534",
+    successSurface: "#DCFCE7",
+  },
+  dark: {
+    background: "#15121B",
+    surface: "#211B2B",
+    backgroundElement: "#2C2437",
+    backgroundSelected: "#3A3048",
+    text: "#F8F6FC",
+    textSecondary: "#C5BDCF",
+    border: "#493D56",
+    controlBorder: "#8C8099",
+    accent: "#BF9FFF",
+    accentSurface: "#382651",
+    accentSurfacePressed: "#493266",
+    danger: "#FFADB0",
+    dangerSurface: "#472229",
+    warning: "#FFD08A",
+    warningSurface: "#3D2B17",
+    success: "#A0E8B4",
+    successSurface: "#183B2A",
+  },
+} as const;
+
+export type ThemeColor = keyof typeof Colors.light;
+export type AppColors = Record<ThemeColor, string>;
 
 // FontSizes (insert)
 /* 

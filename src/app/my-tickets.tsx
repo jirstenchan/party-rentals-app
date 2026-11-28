@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -18,22 +19,21 @@ import {
 } from "@/components/settings/reservation-period-tabs";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, MaxContentWidth, Radius, Spacing } from "@/constants/theme";
+import { MaxContentWidth, Radius, Spacing } from "@/constants/theme";
 import { useReservationPeriods } from "@/hooks/use-reservation-periods";
-import { useTheme } from "@/hooks/use-theme";
 import { fetchMyTickets, type MyTicket } from "@/lib/reservation-api";
 
 const FILTERS = ["All", "Pending", "Confirmed"] as const;
 const STATUS = {
   Pending: {
     icon: "time-outline",
-    color: "#854D0E",
-    background: "#FEF3C7",
+    tone: "warning",
+    background: "warningSurface",
   },
   Confirmed: {
     icon: "checkmark-circle-outline",
-    color: "#166534",
-    background: "#DCFCE7",
+    tone: "success",
+    background: "successSurface",
   },
 } as const;
 
@@ -48,14 +48,14 @@ const ticketPrice = new Intl.NumberFormat("en-PH", {
 });
 
 function TicketCard({ ticket }: { ticket: MyTicket }) {
-  const theme = useTheme();
+  const { theme, styles } = useStyles();
   const status = STATUS[ticket.reservationStatus];
 
   return (
     <ThemedView type="backgroundElement" style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.iconTile}>
-          <Ionicons name="ticket-outline" size={22} color={BrandColors.purple} />
+          <Ionicons name="ticket-outline" size={22} color={theme.accent} />
         </View>
         <View style={styles.ticketDetails}>
           <ThemedText style={styles.eventName}>{ticket.eventName}</ThemedText>
@@ -77,9 +77,9 @@ function TicketCard({ ticket }: { ticket: MyTicket }) {
       </View>
 
       <View style={[styles.cardFooter, { borderColor: theme.backgroundSelected }]}>
-        <View style={[styles.status, { backgroundColor: status.background }]}>
-          <Ionicons name={status.icon} size={16} color={status.color} />
-          <ThemedText type="smallBold" style={{ color: status.color }}>
+        <View style={[styles.status, { backgroundColor: theme[status.background] }]}>
+          <Ionicons name={status.icon} size={16} color={theme[status.tone]} />
+          <ThemedText type="smallBold" style={{ color: theme[status.tone] }}>
             {ticket.reservationStatus}
           </ThemedText>
         </View>
@@ -92,8 +92,8 @@ function TicketCard({ ticket }: { ticket: MyTicket }) {
 }
 
 export default function MyTicketsScreen() {
+  const { theme, styles } = useStyles();
   const router = useRouter();
-  const theme = useTheme();
   const [view, setView] = useState<ReservationPeriod>("Upcoming");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [tickets, setTickets] = useState<MyTicket[] | null>(null);
@@ -208,7 +208,7 @@ export default function MyTicketsScreen() {
 
         {tickets === null && loading ? (
           <View style={styles.message}>
-            <ActivityIndicator color={BrandColors.purple} />
+            <ActivityIndicator color={theme.accent} />
             <ThemedText type="small" themeColor="textSecondary">
               Loading tickets...
             </ThemedText>
@@ -247,7 +247,7 @@ export default function MyTicketsScreen() {
                     <Ionicons
                       name="ticket-outline"
                       size={24}
-                      color={BrandColors.purple}
+                      color={theme.accent}
                     />
                   </View>
                   <ThemedText style={styles.eventName}>
@@ -267,7 +267,7 @@ export default function MyTicketsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   fill: { flex: 1 },
   page: {
     flex: 1,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Radius.medium,
-    backgroundColor: "#F1EDFC",
+    backgroundColor: theme.accentSurface,
   },
   ticketDetails: { flex: 1 },
   eventName: { fontSize: 18, fontWeight: "700" },
@@ -342,4 +342,4 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
   },
   centered: { textAlign: "center" },
-});
+}));

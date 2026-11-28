@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import type { ReactNode } from "react";
 import {
   StyleSheet,
@@ -24,6 +25,7 @@ export function FormInput({
   style,
   ...inputProps
 }: Props) {
+  const { scheme, theme, styles } = useStyles();
   return (
     <View style={containerStyle}>
       <View style={[styles.card, !!icon && styles.iconCard, cardStyle]}>
@@ -33,7 +35,8 @@ export function FormInput({
           {label ? <Text style={styles.label}>{label}</Text> : null}
 
           <TextInput
-            placeholderTextColor="#B3B3B3"
+            placeholderTextColor={theme.textSecondary}
+            keyboardAppearance={scheme}
             {...inputProps}
             style={[styles.input, style]}
           />
@@ -43,15 +46,15 @@ export function FormInput({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   flex: {
     flex: 1,
   },
   card: {
     borderWidth: 1.5,
-    borderColor: "#D4D4D4",
+    borderColor: theme.controlBorder,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
   },
   iconCard: {
     flexDirection: "row",
@@ -60,15 +63,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   input: {
     fontSize: 13,
-    color: "#000",
+    color: theme.text,
     paddingVertical: 4,
     paddingHorizontal: 0,
   },
-});
+}));
 
 // import { StyleSheet, TextInput, TextInputProps } from "react-native";
 

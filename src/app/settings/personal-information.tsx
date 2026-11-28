@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, View } from "react-native";
@@ -20,6 +21,7 @@ import {
 import { chooseProfilePhoto } from "@/lib/profile-photo";
 
 export default function PersonalInformationScreen() {
+  const { theme, styles } = useStyles();
   const router = useRouter();
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [name, setName] = useState("");
@@ -112,7 +114,7 @@ export default function PersonalInformationScreen() {
   const photo = avatar?.uri ?? profile?.avatar_url;
   return (
     <AccountSettingsPage title="PERSONAL INFORMATION">
-      {loading && <ActivityIndicator color="#6B2CF5" />}
+      {loading && <ActivityIndicator color={theme.accent} />}
       {problem !== "" && <AccountMessage error>{problem}</AccountMessage>}
       {!loading && !profile && (
         <AccountButton
@@ -215,15 +217,15 @@ export default function PersonalInformationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   photoRow: { flexDirection: "row", alignItems: "center", gap: 18 },
   photo: { width: 80, height: 80, borderRadius: 40 },
   placeholder: {
-    backgroundColor: "#F1EDFC",
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
   },
-  initial: { fontSize: 28, color: "#6B2CF5", fontWeight: "700" },
+  initial: { fontSize: 28, color: theme.accent, fontWeight: "700" },
   photoAction: { flex: 1, gap: 8 },
   hint: { fontSize: 13 },
-});
+}));

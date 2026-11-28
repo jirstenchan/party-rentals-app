@@ -1,15 +1,13 @@
 import { Tabs, useSegments } from "expo-router";
-import { useColorScheme, Animated, Image } from "react-native";
+import { Animated, Image } from "react-native";
 import { useEffect, useState } from "react";
 
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import { TabBarVisibilityContext } from "@/lib/tab-bar-visibility";
 
 export default function AppTabs() {
   const segments = useSegments() as string[];
-  const scheme = useColorScheme();
-
-  const colors = Colors[scheme === "dark" ? "dark" : "light"];
+  const colors = useTheme();
 
   const [hiddenOnCreate, setHiddenOnCreate] = useState(false);
   const hidden = segments.includes("create") && hiddenOnCreate;
@@ -39,16 +37,16 @@ export default function AppTabs() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.text,
-          tabBarInactiveTintColor: colors.text,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textSecondary,
 
           // Keep the tab bar outside normal screen layout.
           // This allows Create to occupy the full screen.
           tabBarStyle: {
             height: 70,
             position: "absolute",
-            backgroundColor: colors.background,
-            borderTopColor: colors.backgroundElement,
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
             transform: [{ translateY }],
             opacity,
           },
@@ -58,14 +56,13 @@ export default function AppTabs() {
           name="home"
           options={{
             title: "Home",
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <Image
                 source={require("@/assets/images/tabIcons/home.png")}
                 style={{
                   width: 24,
                   height: 24,
                   tintColor: color,
-                  opacity: focused ? 1 : 0.6,
                 }}
                 resizeMode="contain"
               />
@@ -77,14 +74,13 @@ export default function AppTabs() {
           name="create"
           options={{
             title: "Create",
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <Image
                 source={require("@/assets/images/tabIcons/create.png")}
                 style={{
                   width: 24,
                   height: 24,
                   tintColor: color,
-                  opacity: focused ? 1 : 0.6,
                 }}
                 resizeMode="contain"
               />
@@ -96,14 +92,13 @@ export default function AppTabs() {
           name="account"
           options={{
             title: "Account",
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <Image
                 source={require("@/assets/images/tabIcons/profile.png")}
                 style={{
                   width: 24,
                   height: 24,
                   tintColor: color,
-                  opacity: focused ? 1 : 0.6,
                 }}
                 resizeMode="contain"
               />

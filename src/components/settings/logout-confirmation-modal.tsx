@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -12,16 +13,16 @@ import {
 } from "react-native";
 
 import { supabase } from "@/lib/supabase";
-import { Radius } from "@/constants/theme";
+import { BrandColors, Radius } from "@/constants/theme";
 
 type Props = {
   visible: boolean;
   onCancel: () => void;
 };
 
-const RED = "#FF292F";
 
 export function LogoutConfirmationModal({ visible, onCancel }: Props) {
+  const { theme, styles } = useStyles();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -121,7 +122,7 @@ export function LogoutConfirmationModal({ visible, onCancel }: Props) {
           accessibilityViewIsModal
         >
           <View style={styles.iconCircle}>
-            <Ionicons name="log-in-outline" size={50} color={RED} />
+            <Ionicons name="log-in-outline" size={50} color={theme.danger} />
           </View>
 
           <Text style={styles.title}>Log Out</Text>
@@ -174,7 +175,7 @@ export function LogoutConfirmationModal({ visible, onCancel }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   backdrop: {
     flex: 1,
     alignItems: "center",
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderRadius: Radius.large,
     paddingHorizontal: 20,
     paddingVertical: 24,
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#FDEFF0",
+    backgroundColor: theme.dangerSurface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -208,14 +209,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 34,
     fontWeight: "800",
-    color: "#000000",
+    color: theme.text,
     textAlign: "center",
   },
   question: {
     marginTop: 12,
     fontSize: 17,
     lineHeight: 25,
-    color: "#777380",
+    color: theme.textSecondary,
     textAlign: "center",
   },
 
@@ -235,17 +236,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cancelButton: {
-    backgroundColor: "#CDCDCD",
+    backgroundColor: theme.backgroundSelected,
   },
   confirmButton: {
-    backgroundColor: RED,
+    backgroundColor: BrandColors.error,
   },
   buttonText: {
     fontSize: 20,
     fontWeight: "700",
   },
   cancelText: {
-    color: "#000000",
+    color: theme.text,
   },
   confirmText: {
     color: "#FFFFFF",
@@ -257,4 +258,4 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.6,
   },
-});
+}));

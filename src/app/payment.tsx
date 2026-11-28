@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -21,7 +22,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Colors, Radius, Spacing } from "@/constants/theme";
+import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import { PickedImage, uploadProofImage } from "@/data/image";
 import {
   formatTableHoldTime,
@@ -43,15 +44,8 @@ import {
 } from "@/lib/reservation-api";
 
 // Theme colors
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
-const MUTED = BrandColors.muted;
-const BLACK = BrandColors.black;
-const WHITE = BrandColors.white;
-const DROPZONE_BG = Colors.light.backgroundElement;
 
 // Not in the theme yet
-const NOTICE_BG = "#F1EDFB";
 
 // Font sizes (same values as the other screens, from theme.ts)
 const FontSize = {
@@ -80,6 +74,7 @@ const tablePrice = new Intl.NumberFormat("en-PH", {
 });
 
 export default function PaymentScreen() {
+  const { scheme, theme, styles } = useStyles();
   const { ticketId, reservationItemId, itemType } = useLocalSearchParams<{
     ticketId: string;
     reservationItemId: string;
@@ -241,7 +236,7 @@ export default function PaymentScreen() {
     return (
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={PURPLE} style={styles.loading} />
+        <ActivityIndicator size="large" color={theme.accent} style={styles.loading} />
       </ThemedView>
     );
   }
@@ -258,7 +253,7 @@ export default function PaymentScreen() {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Ionicons name="chevron-back" size={24} color={PURPLE} />
+              <Ionicons name="chevron-back" size={24} color={theme.accent} />
             </Pressable>
             <ThemedText style={styles.headerTitle}>PAYMENT</ThemedText>
           </View>
@@ -308,7 +303,7 @@ export default function PaymentScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
               >
-                <Ionicons name="chevron-back" size={24} color={PURPLE} />
+                <Ionicons name="chevron-back" size={24} color={theme.accent} />
               </Pressable>
 
               <ThemedText style={styles.headerTitle}>PAYMENT</ThemedText>
@@ -341,7 +336,7 @@ export default function PaymentScreen() {
                     <Image source={{ uri: hostAvatar }} style={styles.avatar} />
                   ) : (
                     <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <Ionicons name="person" size={24} color={MUTED} />
+                      <Ionicons name="person" size={24} color={theme.textSecondary} />
                     </View>
                   )}
 
@@ -381,7 +376,7 @@ export default function PaymentScreen() {
               <MaterialCommunityIcons
                 name="file-upload-outline"
                 size={40}
-                color={PURPLE}
+                color={theme.accent}
               />
               <ThemedText type="small" style={styles.dropzoneText}>
                 Tap to upload an image
@@ -413,7 +408,7 @@ export default function PaymentScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Remove image"
                 >
-                  <Ionicons name="close" size={24} color={MUTED} />
+                  <Ionicons name="close" size={24} color={theme.textSecondary} />
                 </Pressable>
               </View>
             ) : null}
@@ -424,7 +419,7 @@ export default function PaymentScreen() {
                 <Ionicons
                   name="information-circle-outline"
                   size={24}
-                  color={PURPLE}
+                  color={theme.accent}
                 />
                 <ThemedText style={styles.noticeTitle}>
                   Important notice
@@ -443,13 +438,14 @@ export default function PaymentScreen() {
               value={referenceNum}
               onChangeText={setReferenceNum}
               placeholder="Enter your transaction reference"
-              placeholderTextColor={MUTED}
+              placeholderTextColor={theme.textSecondary}
+              keyboardAppearance={scheme}
               maxLength={100}
               autoCapitalize="none"
               style={styles.referenceInput}
             />
             {sendError && (
-              <ThemedText accessibilityRole="alert" style={{ color: BrandColors.error }}>
+              <ThemedText accessibilityRole="alert" themeColor="danger">
                 {sendError}
               </ThemedText>
             )}
@@ -473,7 +469,7 @@ export default function PaymentScreen() {
               accessibilityLabel="Send payment"
             >
               {submitting ? (
-                <ActivityIndicator color={WHITE} />
+                <ActivityIndicator color={BrandColors.white} />
               ) : (
                 <ThemedText style={styles.sendButtonText}>
                   Send payment
@@ -504,10 +500,10 @@ export default function PaymentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: WHITE,
+    backgroundColor: theme.background,
   },
   safeArea: {
     flex: 1,
@@ -532,7 +528,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.one,
     paddingBottom: Spacing.two,
-    backgroundColor: WHITE,
+    backgroundColor: theme.surface,
   },
   // Clips the shadow so it only shows below the header (not on the sides/top).
   // The negative margin keeps the layout unchanged.
@@ -552,7 +548,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: FontSize.headerTitle,
     lineHeight: 30,
     fontWeight: "800",
@@ -576,8 +572,8 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Radius.large,
     borderWidth: 1.5,
-    borderColor: PURPLE,
-    backgroundColor: WHITE,
+    borderColor: theme.accent,
+    backgroundColor: theme.surface,
   },
   hostRow: {
     flexDirection: "row",
@@ -590,20 +586,21 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   avatarPlaceholder: {
-    backgroundColor: DROPZONE_BG,
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
   },
   hostName: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.cardTitle,
     fontWeight: "700",
   },
   hostRole: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.host,
   },
   qr: {
+    backgroundColor: BrandColors.white,
     width: "100%",
     aspectRatio: 1,
   },
@@ -622,11 +619,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.large,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: BORDER,
-    backgroundColor: DROPZONE_BG,
+    borderColor: theme.border,
+    backgroundColor: theme.backgroundElement,
   },
   dropzoneText: {
-    color: MUTED,
+    color: theme.textSecondary,
     fontWeight: "700",
   },
 
@@ -638,8 +635,8 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Radius.large,
     borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: WHITE,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   thumb: {
     width: 56,
@@ -647,11 +644,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.small,
   },
   fileName: {
-    color: BLACK,
+    color: theme.text,
     fontWeight: "700",
   },
   fileSize: {
-    color: MUTED,
+    color: theme.textSecondary,
     fontSize: FontSize.caption,
   },
 
@@ -660,7 +657,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     padding: Spacing.three,
     borderRadius: Radius.large,
-    backgroundColor: NOTICE_BG,
+    backgroundColor: theme.accentSurface,
   },
   noticeHeader: {
     flexDirection: "row",
@@ -668,11 +665,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   noticeTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontWeight: "600",
   },
   noticeText: {
-    color: PURPLE,
+    color: theme.accent,
   },
 
   // Reference input
@@ -681,26 +678,26 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderRadius: Radius.medium,
     borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: WHITE,
-    color: BLACK,
+    borderColor: theme.controlBorder,
+    backgroundColor: theme.surface,
+    color: theme.text,
   },
 
   // Footer
   footer: {
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.three,
-    backgroundColor: WHITE,
+    backgroundColor: theme.surface,
   },
   sendButton: {
     height: 55,
     borderRadius: Radius.large,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
   sendButtonText: {
-    color: WHITE,
+    color: BrandColors.white,
     fontWeight: "600",
   },
   cancelButton: {
@@ -708,7 +705,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
   },
   cancelText: {
-    color: MUTED,
+    color: theme.textSecondary,
     fontWeight: "700",
     textDecorationLine: "underline",
   },
@@ -720,4 +717,4 @@ const styles = StyleSheet.create({
   dimmed: {
     opacity: 0.7,
   },
-});
+}));

@@ -1,8 +1,9 @@
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { NewTable } from "@/data/table";
 
-const PURPLE = "#6B2CF5";
 
 type Props = {
   tables: NewTable[];
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function TableDraftList({ tables, onRemove }: Props) {
+  const { styles } = useStyles();
   if (tables.length === 0) return null;
 
   return (
@@ -43,16 +45,16 @@ export function TableDraftList({ tables, onRemove }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   list: {
     gap: 14,
     alignSelf: "stretch",
   },
   card: {
     borderWidth: 1.5,
-    borderColor: "#D4D4D4",
+    borderColor: theme.border,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     flexDirection: "row",
     alignItems: "center",
     gap: 18,
@@ -70,20 +72,20 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   price: {
     fontSize: 13.5,
-    color: "#7A7A7A",
+    color: theme.textSecondary,
     marginTop: 4,
   },
   capacity: {
     fontSize: 12,
-    color: "#7A7A7A",
+    color: theme.textSecondary,
     marginTop: 4,
   },
   button: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -93,4 +95,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-});
+}));

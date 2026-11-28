@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Stack,
@@ -21,10 +22,6 @@ import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
 
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
-const MUTED = BrandColors.muted;
-const WHITE = BrandColors.white;
 const MARGIN = 25;
 
 // Format ticket price
@@ -136,6 +133,7 @@ function BuyButton({
   text?: string;
   onPress: () => void;
 }) {
+  const { styles } = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -157,6 +155,7 @@ function BuyButton({
 }
 
 export default function VenueMapScreen() {
+  const { theme, styles } = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -213,7 +212,7 @@ export default function VenueMapScreen() {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Ionicons name="chevron-back" size={24} color={PURPLE} />
+              <Ionicons name="chevron-back" size={24} color={theme.accent} />
             </Pressable>
 
             <ThemedText style={styles.headerTitle}>VENUE MAP</ThemedText>
@@ -242,7 +241,7 @@ export default function VenueMapScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="chevron-back" size={24} color={PURPLE} />
+            <Ionicons name="chevron-back" size={24} color={theme.accent} />
           </Pressable>
 
           <ThemedText style={styles.headerTitle}>VENUE MAP</ThemedText>
@@ -293,7 +292,7 @@ export default function VenueMapScreen() {
                       <Ionicons
                         name="ticket-outline"
                         size={46}
-                        color={PURPLE}
+                        color={theme.accent}
                       />
                     </View>
 
@@ -339,7 +338,7 @@ export default function VenueMapScreen() {
                   return (
                     <View key={table.tableId} style={styles.card}>
                       <View style={styles.cardIcon}>
-                        <TableIcon color={PURPLE} />
+                        <TableIcon color={theme.accent} />
                       </View>
                       <View style={styles.cardInfo}>
                         <ThemedText style={styles.cardName}>{table.label}</ThemedText>
@@ -379,7 +378,7 @@ export default function VenueMapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   loading: { marginTop: Spacing.five },
@@ -394,7 +393,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   headerTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "800",
@@ -415,10 +414,10 @@ const styles = StyleSheet.create({
   mapFrame: {
     marginHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: PURPLE,
+    borderColor: theme.accent,
     borderRadius: Radius.large,
     overflow: "hidden",
-    backgroundColor: WHITE,
+    backgroundColor: theme.surface,
   },
   mapImage: {
     width: "100%",
@@ -434,7 +433,7 @@ const styles = StyleSheet.create({
     marginTop: 22,
     marginBottom: 20,
     marginLeft: 3,
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "700",
@@ -451,7 +450,7 @@ const styles = StyleSheet.create({
     paddingRight: 19,
     borderRadius: Radius.medium,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
   },
   cardIcon: {
     width: 52,
@@ -469,7 +468,7 @@ const styles = StyleSheet.create({
   },
   cardSub: {
     fontSize: 13,
-    color: "#77737F",
+    color: theme.textSecondary,
   },
 
   // Buy
@@ -477,17 +476,17 @@ const styles = StyleSheet.create({
     width: 66,
     height: 28,
     borderRadius: Radius.medium,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
-  buyDisabled: { backgroundColor: MUTED },
+  buyDisabled: { backgroundColor: theme.backgroundSelected },
   buyText: {
-    color: WHITE,
+    color: BrandColors.white,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "700",
   },
-  buyTextDisabled: { color: "#EDEDEF" },
+  buyTextDisabled: { color: theme.textSecondary },
   pressed: { opacity: 0.85 },
-});
+}));

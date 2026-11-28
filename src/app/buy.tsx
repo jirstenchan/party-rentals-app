@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Colors, Radius, Spacing } from "@/constants/theme";
+import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import {
   createTicketReservation,
   EventDetailDto,
@@ -28,16 +29,8 @@ import {
 import { setProofDraft } from "@/lib/payment-draft";
 
 // Theme colors
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
-const MUTED = BrandColors.muted;
-const BLACK = BrandColors.black;
-const WHITE = BrandColors.white;
-const PLACEHOLDER_BG = Colors.light.backgroundElement;
 
 // Not in the theme yet
-const ORANGE = "#E08A0B";
-const ORANGE_BG = "#FDF0DA";
 
 // Font sizes (same values as the Event Details UI in theme.ts)
 const FontSize = {
@@ -70,6 +63,7 @@ const formatTime = (iso: string) =>
   });
 
 export default function BuyScreen() {
+  const { theme, styles } = useStyles();
   const router = useRouter();
   const { eventId, ticketId, tableId } = useLocalSearchParams<{
     eventId: string;
@@ -160,7 +154,7 @@ export default function BuyScreen() {
     return (
       <ThemedView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={PURPLE} style={styles.loading} />
+        <ActivityIndicator size="large" color={theme.accent} style={styles.loading} />
       </ThemedView>
     );
   }
@@ -173,7 +167,7 @@ export default function BuyScreen() {
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
             <Pressable onPress={() => router.back()} hitSlop={12}>
-              <Ionicons name="chevron-back" size={24} color={PURPLE} />
+              <Ionicons name="chevron-back" size={24} color={theme.accent} />
             </Pressable>
             <ThemedText style={styles.headerTitle}>
               RESERVATION DETAILS
@@ -211,7 +205,7 @@ export default function BuyScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="chevron-back" size={24} color={PURPLE} />
+            <Ionicons name="chevron-back" size={24} color={theme.accent} />
           </Pressable>
 
           <ThemedText style={styles.headerTitle}>
@@ -233,7 +227,7 @@ export default function BuyScreen() {
               />
             ) : (
               <View style={[styles.poster, styles.posterPlaceholder]}>
-                <Ionicons name="image-outline" size={28} color={MUTED} />
+                <Ionicons name="image-outline" size={28} color={theme.textSecondary} />
               </View>
             )}
 
@@ -250,7 +244,7 @@ export default function BuyScreen() {
 
               {/* Date */}
               <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={24} color={PURPLE} />
+                <Ionicons name="calendar" size={24} color={theme.accent} />
                 <ThemedText style={[styles.infoMain, styles.flex]}>
                   {formatDate(event.startTime)}
                 </ThemedText>
@@ -258,7 +252,7 @@ export default function BuyScreen() {
 
               {/* Time */}
               <View style={styles.infoRow}>
-                <Ionicons name="stopwatch-outline" size={24} color={PURPLE} />
+                <Ionicons name="stopwatch-outline" size={24} color={theme.accent} />
                 <ThemedText style={[styles.infoMain, styles.flex]}>
                   {timeText}
                 </ThemedText>
@@ -267,7 +261,7 @@ export default function BuyScreen() {
               {/* Location */}
               {event.location ? (
                 <View style={styles.infoRow}>
-                  <Ionicons name="location" size={24} color={PURPLE} />
+                  <Ionicons name="location" size={24} color={theme.accent} />
                   <ThemedText style={[styles.infoMain, styles.flex]}>
                     {event.location}
                   </ThemedText>
@@ -280,7 +274,7 @@ export default function BuyScreen() {
                   <MaterialCommunityIcons
                     name="currency-php"
                     size={12}
-                    color={WHITE}
+                    color={BrandColors.white}
                   />
                 </View>
                 <ThemedText style={[styles.infoMain, styles.flex]}>
@@ -293,7 +287,7 @@ export default function BuyScreen() {
           {/* Ticket card (same as Venue Map) */}
           <View style={styles.ticketCard}>
             <View style={styles.ticketIcon}>
-              <Ionicons name="ticket-outline" size={46} color={PURPLE} />
+              <Ionicons name="ticket-outline" size={46} color={theme.accent} />
             </View>
 
             <View style={styles.ticketInfo}>
@@ -321,7 +315,7 @@ export default function BuyScreen() {
 
           {/* Pending banner */}
           <View style={styles.pendingCard}>
-            <Ionicons name="stopwatch-outline" size={40} color={ORANGE} />
+            <Ionicons name="stopwatch-outline" size={40} color={theme.warning} />
 
             <View style={styles.flex}>
               <ThemedText style={styles.pendingTitle}>
@@ -359,7 +353,7 @@ export default function BuyScreen() {
             accessibilityLabel="Proceed to pay"
           >
             {reserving ? (
-              <ActivityIndicator color={WHITE} />
+              <ActivityIndicator color={BrandColors.white} />
             ) : (
               <ThemedText style={styles.payButtonText}>
                 Proceed to Pay
@@ -382,10 +376,10 @@ export default function BuyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: WHITE,
+    backgroundColor: theme.background,
   },
   safeArea: {
     flex: 1,
@@ -407,7 +401,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.two,
   },
   headerTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: FontSize.headerTitle,
     lineHeight: 30,
     fontWeight: "800",
@@ -428,8 +422,8 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     borderRadius: Radius.large,
     borderWidth: 1.5,
-    borderColor: PURPLE,
-    backgroundColor: WHITE,
+    borderColor: theme.accent,
+    backgroundColor: theme.surface,
   },
   poster: {
     width: 105,
@@ -437,7 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.medium,
   },
   posterPlaceholder: {
-    backgroundColor: PLACEHOLDER_BG,
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -446,13 +440,13 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   eventTitle: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.titleText,
     lineHeight: 26,
     fontWeight: "800",
   },
   hostText: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.host,
   },
   infoRow: {
@@ -461,14 +455,14 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   infoMain: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.detailLine,
   },
   pesoCircle: {
     width: 24,
     height: 24,
     borderRadius: Radius.full,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -482,8 +476,8 @@ const styles = StyleSheet.create({
     paddingRight: 19,
     borderRadius: Radius.medium,
     borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: WHITE,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   ticketIcon: {
     width: 52,
@@ -496,24 +490,24 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   ticketTitle: {
-    color: BLACK,
+    color: theme.text,
     fontSize: 14,
     fontWeight: "700",
   },
   ticketPrice: {
-    color: "#77737F",
+    color: theme.textSecondary,
     fontSize: 13,
   },
   buyButton: {
     width: 66,
     height: 28,
     borderRadius: Radius.medium,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
   buyButtonText: {
-    color: WHITE,
+    color: BrandColors.white,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "700",
@@ -528,16 +522,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderRadius: Radius.large,
     borderWidth: 1.5,
-    borderColor: ORANGE,
-    backgroundColor: ORANGE_BG,
+    borderColor: theme.warning,
+    backgroundColor: theme.warningSurface,
   },
   pendingTitle: {
-    color: ORANGE,
+    color: theme.warning,
     fontSize: FontSize.cardTitle,
     fontWeight: "700",
   },
   pendingText: {
-    color: ORANGE,
+    color: theme.warning,
     fontSize: 13,
     lineHeight: 18,
     marginTop: Spacing.one,
@@ -546,7 +540,7 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     paddingHorizontal: Spacing.three,
-    backgroundColor: WHITE,
+    backgroundColor: theme.surface,
   },
   totalRow: {
     flexDirection: "row",
@@ -555,16 +549,16 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.three,
     marginBottom: Spacing.three,
     borderTopWidth: 1.5,
-    borderTopColor: BORDER,
+    borderTopColor: theme.border,
   },
   totalLabel: {
-    color: BLACK,
+    color: theme.text,
     fontSize: 18,
     lineHeight: 16,
     fontWeight: "700",
   },
   totalValue: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.sectionTitle,
     lineHeight: 28,
     fontWeight: "700",
@@ -572,12 +566,12 @@ const styles = StyleSheet.create({
   payButton: {
     height: 55,
     borderRadius: Radius.large,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
   payButtonText: {
-    color: WHITE,
+    color: BrandColors.white,
     fontSize: FontSize.ctaText,
     fontWeight: "600",
   },
@@ -586,7 +580,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
   },
   cancelText: {
-    color: MUTED,
+    color: theme.textSecondary,
     fontSize: FontSize.cardTitle,
     fontWeight: "500",
     textDecorationLine: "underline",
@@ -596,10 +590,10 @@ const styles = StyleSheet.create({
   errorText: {
     textAlign: "center",
     marginTop: Spacing.five,
-    color: MUTED,
+    color: theme.textSecondary,
     fontSize: FontSize.notFound,
   },
   pressed: {
     opacity: 0.85,
   },
-});
+}));

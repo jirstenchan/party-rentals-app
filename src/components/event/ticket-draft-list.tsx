@@ -1,9 +1,10 @@
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { NewTicket } from "@/data/ticket";
 
-const PURPLE = "#6B2CF5";
 
 type Props = {
   tickets: NewTicket[];
@@ -11,13 +12,14 @@ type Props = {
 };
 
 export function TicketDraftList({ tickets, onRemove }: Props) {
+  const { theme, styles } = useStyles();
   if (tickets.length === 0) return null;
 
   return (
     <View style={styles.list}>
       {tickets.map((ticket, index) => (
         <View key={index} style={styles.card}>
-          <Ionicons name="ticket-outline" size={44} color={PURPLE} />
+          <Ionicons name="ticket-outline" size={44} color={theme.accent} />
 
           <View style={styles.details}>
             <Text style={styles.name}>{ticket.name}</Text>
@@ -44,16 +46,16 @@ export function TicketDraftList({ tickets, onRemove }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   list: {
     gap: 14,
     alignSelf: "stretch",
   },
   card: {
     borderWidth: 1.5,
-    borderColor: "#D4D4D4",
+    borderColor: theme.border,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     flexDirection: "row",
     alignItems: "center",
     gap: 18,
@@ -67,20 +69,20 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   price: {
     fontSize: 13.5,
-    color: "#7A7A7A",
+    color: theme.textSecondary,
     marginTop: 4,
   },
   salesWindow: {
     fontSize: 12,
-    color: "#7A7A7A",
+    color: theme.textSecondary,
     marginTop: 4,
   },
   button: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -90,4 +92,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-});
+}));

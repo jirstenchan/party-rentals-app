@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -21,9 +22,9 @@ import { deleteEvent, listMyEvents, type Event } from "@/data/event";
 import { problemFor } from "@/data/problem";
 import { useSetTabBarHidden } from "@/lib/tab-bar-visibility";
 
-const PURPLE = "#6B2CF5";
 
 export default function CreateEventScreen() {
+  const { theme, styles } = useStyles();
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const setTabBarHidden = useSetTabBarHidden();
@@ -113,7 +114,7 @@ export default function CreateEventScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go to home"
           >
-            <Ionicons name="chevron-back" size={28} color={PURPLE} />
+            <Ionicons name="chevron-back" size={28} color={theme.accent} />
           </Pressable>
 
           <Text style={styles.headerTitle}>CREATE EVENT</Text>
@@ -127,10 +128,10 @@ export default function CreateEventScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   scrollView: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.background,
   },
   contentContainer: {
     flexDirection: "row",
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   headerTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     fontWeight: "800",
   },
@@ -164,13 +165,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   refreshText: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 14,
     fontWeight: "600",
   },
   status: {
-    color: "#000",
+    color: theme.text,
     fontSize: 14,
     textAlign: "center",
   },
-});
+}));
