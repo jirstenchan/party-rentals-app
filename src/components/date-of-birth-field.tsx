@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, useThemeScheme } from "@/hooks/use-theme";
 
 type Props = {
   value: string;
@@ -10,6 +10,7 @@ type Props = {
 };
 
 export function DateOfBirthField({ value, onChange, disabled }: Props) {
+  const scheme = useThemeScheme();
   const theme = useTheme();
   return (
     <View style={styles.container}>
@@ -35,11 +36,12 @@ export function DateOfBirthField({ value, onChange, disabled }: Props) {
           height: 56,
           padding: "0 20px",
           borderRadius: 15,
-          border: "1.5px solid #D1D1D6",
+          border: `1.5px solid ${theme.controlBorder}`,
+          colorScheme: scheme,
           fontFamily: "inherit",
           fontSize: 16,
-          color: "#000000",
-          backgroundColor: "#FFFFFF",
+          color: theme.text,
+          backgroundColor: theme.surface,
         },
       })}
       <Text
@@ -54,6 +56,6 @@ export function DateOfBirthField({ value, onChange, disabled }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  label: { fontSize: 16, fontWeight: "600", color: "#000000" },
-  hint: { fontSize: 14, color: "#60646C" },
+  label: { fontSize: 16, fontWeight: "600" },
+  hint: { fontSize: 14 },
 });

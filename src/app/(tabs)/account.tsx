@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -9,7 +10,6 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
   BottomTabInset,
-  BrandColors,
   Radius,
   Spacing,
 } from "@/constants/theme";
@@ -18,8 +18,6 @@ import { fetchEvents } from "@/lib/events-api";
 import { fetchMyReservations } from "@/lib/reservation-api";
 import { useCallback, useState } from "react";
 
-const PURPLE = BrandColors.purple;
-const PURPLE_TINT = "#F1EDFC";
 
 // Quick actions row (UI)
 const QUICK_ACTIONS = [
@@ -30,30 +28,12 @@ const QUICK_ACTIONS = [
 ] as const;
 
 export default function AccountScreen() {
+  const { theme, styles } = useStyles();
   const profile = useProfile();
   const router = useRouter();
 
   const [eventCount, setEventCount] = useState<number | null>(null);
   const [reservationCount, setReservationCount] = useState<number | null>(null);
-
-  //Getting the total number of events created by the user logged in
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-
-      fetchEvents("mine")
-        .then((events) => {
-          if (active) setEventCount(events.length);
-        })
-        .catch(() => {
-          if (active) setEventCount(null);
-        });
-
-      return () => {
-        active = false;
-      };
-    }, []),
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -102,7 +82,7 @@ export default function AccountScreen() {
               accessibilityRole="button"
               accessibilityLabel="Settings"
             >
-              <Ionicons name="settings-outline" size={30} color={PURPLE} />
+              <Ionicons name="settings-outline" size={30} color={theme.accent} />
             </Pressable>
           </View>
 
@@ -144,7 +124,7 @@ export default function AccountScreen() {
                 <Ionicons
                   name="location-outline"
                   size={22}
-                  color="#000"
+                  color={theme.textSecondary}
                   style={styles.locationIcon}
                 />
                 <ThemedText style={styles.location}>Cebu City</ThemedText>
@@ -184,39 +164,33 @@ export default function AccountScreen() {
                     ? () => router.push("/my-tickets")
                     : a.id === "tables"
                       ? () => router.push("/my-tables")
-                      : undefined
+                      : a.id === "events"
+                        ? () => router.push("/my-events")
+                        : undefined
                 }
                 accessibilityRole="button"
                 accessibilityLabel={a.label}
               >
                 <View style={styles.actionCircle}>
-                  <Ionicons name={a.icon} size={30} color={PURPLE} />
+                  <Ionicons name={a.icon} size={30} color={theme.accent} />
                 </View>
                 <ThemedText style={styles.actionLabel}>{a.label}</ThemedText>
               </Pressable>
             ))}
           </View>
 
-          {/* Edit Profile */}
-          <Pressable
-            onPress={() => router.push("/settings/personal-information")}
-            style={({ pressed }) => [
-              styles.editButton,
-              pressed && styles.pressed,
-            ]}
-            accessibilityRole="button"
-          >
-            <Ionicons name="pencil-outline" size={22} color={PURPLE} />
-            <ThemedText style={styles.editText}>Edit Profile</ThemedText>
-          </Pressable>
-
           {/* History header */}
           <View style={styles.sectionHeader}>
             <ThemedText style={styles.sectionTitle}>My Events</ThemedText>
-            {/* TODO: hook up the full history screen */}
-            <Pressable style={styles.seeAll} hitSlop={8}>
+            <Pressable
+              onPress={() => router.push({ pathname: "/my-events", params: { view: "all" } })}
+              accessibilityRole="button"
+              accessibilityLabel="See all my events"
+              style={styles.seeAll}
+              hitSlop={8}
+            >
               <ThemedText style={styles.seeAllText}>See All</ThemedText>
-              <Ionicons name="chevron-forward" size={20} color={PURPLE} />
+              <Ionicons name="chevron-forward" size={20} color={theme.accent} />
             </Pressable>
           </View>
         </ThemedView>
@@ -225,14 +199,15 @@ export default function AccountScreen() {
         <EventList
           scope="mine"
           showStatus
-          emptyText="You haven't created any events yet."
+          upcomingOnly
+          emptyText="You have no upcoming events."
         />
       </SafeAreaView>
     </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { flex: 1 },
   safeArea: {
     flex: 1,
@@ -250,7 +225,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.three,
   },
   headerTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     lineHeight: 40,
     fontWeight: "800",
@@ -267,8 +242,8 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: Radius.full,
     borderWidth: 3,
-    borderColor: PURPLE,
-    backgroundColor: PURPLE_TINT,
+    borderColor: theme.accent,
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden", // clips the image to the circle
@@ -280,7 +255,7 @@ const styles = StyleSheet.create({
   avatarLetter: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#6d28d9",
+    color: theme.accent,
   },
   userInfo: {
     flex: 1,
@@ -293,7 +268,7 @@ const styles = StyleSheet.create({
   },
   handle: {
     fontSize: 16,
-    color: "#716D78",
+    color: theme.textSecondary,
     lineHeight: 18,
     fontWeight: "500",
   },
@@ -327,7 +302,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: "#716D78",
+    color: theme.textSecondary,
     lineHeight: 18,
     fontWeight: "500",
   },
@@ -346,32 +321,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 27,
-    backgroundColor: PURPLE_TINT,
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
   },
   actionLabel: {
     fontSize: 14,
     lineHeight: 18,
-  },
-
-  // Edit Profile
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    height: 40,
-    borderRadius: Radius.small,
-    backgroundColor: PURPLE_TINT,
-    marginTop: Spacing.two,
-  },
-  editText: {
-    color: PURPLE,
-    fontSize: 16,
-    lineHeight: 26,
-    fontWeight: "600",
-    transform: [{ translateX: -5 }],
   },
 
   // History
@@ -392,14 +348,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   seeAllText: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 16,
     lineHeight: 24,
     fontWeight: "700",
   },
 
-  // Button
-  pressed: {
-    opacity: 0.85,
-  },
-});
+}));

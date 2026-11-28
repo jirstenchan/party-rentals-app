@@ -20,17 +20,14 @@ import Svg, { Path } from "react-native-svg";
 
 import { DataCollectionConsent } from "@/components/data-collection-consent";
 import { DateOfBirthField } from "@/components/date-of-birth-field";
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import { getSignupError, getSignupMetadata } from "@/lib/signup";
 import {
   isUnconfirmedEmailError,
   rememberPendingEmail,
 } from "@/lib/email-verification";
 import { supabase } from "@/lib/supabase";
-
-const PRIMARY = "#6C2CF5";
-const BORDER = "#D1D1D6";
-const PLACEHOLDER = "#C7C7CC";
-const TEXT = "#000000";
 
 /* small pieces */
 
@@ -55,17 +52,19 @@ function Field({
   autoCapitalize = "none",
   editable = true,
 }: FieldProps) {
+  const { scheme, theme, styles } = useStyles();
   const [visible, setVisible] = useState(false);
 
   return (
     <View style={styles.field}>
-      <Ionicons name={icon} size={24} color={TEXT} style={styles.fieldIcon} />
+      <Ionicons name={icon} size={24} color={theme.text} style={styles.fieldIcon} />
 
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={PLACEHOLDER}
+        placeholderTextColor={theme.textSecondary}
+        keyboardAppearance={scheme}
         secureTextEntry={secure && !visible}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
@@ -84,7 +83,7 @@ function Field({
           <Ionicons
             name={visible ? "eye-off-outline" : "eye-outline"}
             size={24}
-            color="#B8B8BE"
+            color={theme.textSecondary}
           />
         </Pressable>
       )}
@@ -116,6 +115,7 @@ function GoogleLogo({ size = 35 }: { size?: number }) {
 }
 
 function SocialRow({ disabled }: { disabled?: boolean }) {
+  const { styles } = useStyles();
   // TODO: hook these up to supabase.auth.signInWithOAuth once providers are set up
   return (
     <>
@@ -148,6 +148,7 @@ function PrimaryButton({
   onPress: () => void;
   busy: boolean;
 }) {
+  const { styles } = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -170,6 +171,7 @@ function PrimaryButton({
 /* main screen */
 
 export function SignIn() {
+  const { scheme, styles } = useStyles();
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
@@ -281,7 +283,11 @@ export function SignIn() {
 
   return (
     <ImageBackground
-      source={require("../../assets/images/setup/bg-design.png")}
+      source={
+        scheme === "light"
+          ? require("../../assets/images/setup/bg-design.png")
+          : undefined
+      }
       style={styles.background}
       resizeMode="cover"
     >
@@ -457,13 +463,13 @@ export function SignIn() {
 
 /* styles */
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   screen: {
     flex: 1,
   },
   background: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.background,
   },
   content: {
     flexGrow: 1,
@@ -472,20 +478,20 @@ const styles = StyleSheet.create({
   },
 
   violet: {
-    color: PRIMARY,
+    color: theme.accent,
   },
 
   /* headings */
   signupTitle: {
     fontSize: 36,
     fontWeight: "800",
-    color: TEXT,
+    color: theme.text,
     marginTop: 26,
   },
   signupSubtitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: TEXT,
+    color: theme.text,
     marginTop: 8,
   },
   logo: {
@@ -497,13 +503,13 @@ const styles = StyleSheet.create({
   loginTitle: {
     fontSize: 32,
     fontWeight: "800",
-    color: PRIMARY,
+    color: theme.accent,
     textAlign: "center",
     marginTop: -20,
   },
   loginSubtitle: {
     fontSize: 18,
-    color: TEXT,
+    color: theme.text,
     textAlign: "center",
     marginTop: 2,
   },
@@ -520,7 +526,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 15,
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: theme.controlBorder,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -533,7 +539,7 @@ const styles = StyleSheet.create({
     height: "100%",
     fontSize: 16,
     fontWeight: "600",
-    color: TEXT,
+    color: theme.text,
   },
 
   /* login extras */
@@ -546,18 +552,18 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 16,
     fontWeight: "600",
-    color: PRIMARY,
+    color: theme.accent,
   },
 
   /* messages */
   problem: {
-    color: "#D93025",
+    color: theme.danger,
     fontSize: 16,
     textAlign: "center",
     marginBottom: 12,
   },
   notice: {
-    color: PRIMARY,
+    color: theme.accent,
     fontSize: 16,
     textAlign: "center",
     marginBottom: 12,
@@ -567,7 +573,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 58,
     borderRadius: 15,
-    backgroundColor: PRIMARY,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -590,11 +596,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1.5,
-    backgroundColor: BORDER,
+    backgroundColor: theme.border,
   },
   dividerText: {
     fontSize: 16,
-    color: TEXT,
+    color: theme.text,
   },
   socialRow: {
     flexDirection: "row",
@@ -607,8 +613,8 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 30,
     borderWidth: 1.5,
-    borderColor: BORDER,
-    backgroundColor: "#FFFFFF",
+    borderColor: theme.controlBorder,
+    backgroundColor: theme.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -621,12 +627,12 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: 16,
-    color: TEXT,
+    color: theme.text,
   },
   switchLink: {
     fontSize: 16,
     fontWeight: "600",
-    color: PRIMARY,
+    color: theme.accent,
     textDecorationLine: "underline",
   },
   verifyLink: {
@@ -635,4 +641,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 8,
   },
-});
+}));

@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,11 +19,6 @@ import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, BrandColors, Radius } from "@/constants/theme";
 import { EventDto, fetchEvents } from "@/lib/events-api";
 
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
-const MUTED = BrandColors.muted;
-const BLACK = BrandColors.black;
-const WHITE = BrandColors.white;
 
 // Logo
 const LOGO = require("../../../assets/images/home/partylink-logo.png");
@@ -60,6 +56,7 @@ function formatEventDate(date: string): string {
 }
 
 export default function HomeScreen() {
+  const { scheme, theme, styles } = useStyles();
   const router = useRouter();
 
   const [query, setQuery] = useState("");
@@ -136,7 +133,7 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={h.label}
               >
-                <Ionicons name={h.icon} size={24} color={PURPLE} />
+                <Ionicons name={h.icon} size={24} color={theme.accent} />
               </Pressable>
             ))}
           </View>
@@ -148,11 +145,12 @@ export default function HomeScreen() {
             value={query}
             onChangeText={setQuery}
             placeholder="Search events"
-            placeholderTextColor={MUTED}
+            placeholderTextColor={theme.textSecondary}
             style={styles.searchInput}
+            keyboardAppearance={scheme}
             returnKeyType="search"
           />
-          <Ionicons name="search" size={22} color={MUTED} />
+          <Ionicons name="search" size={22} color={theme.textSecondary} />
         </View>
 
         {/* Filters */}
@@ -177,7 +175,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="chevron-down"
                 size={18}
-                color={f.active ? BrandColors.white : BLACK}
+                color={f.active ? BrandColors.white : theme.textSecondary}
               />
             </Pressable>
           ))}
@@ -193,14 +191,14 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={PURPLE}
+              tintColor={theme.accent}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               {loading ? (
                 <>
-                  <ActivityIndicator size="large" color={PURPLE} />
+                  <ActivityIndicator size="large" color={theme.accent} />
                   <ThemedText style={styles.empty}>
                     Loading events...
                   </ThemedText>
@@ -260,14 +258,14 @@ export default function HomeScreen() {
                       <Ionicons
                         name={isFavorite ? "heart" : "heart-outline"}
                         size={24}
-                        color={PURPLE}
+                        color={theme.accent}
                       />
                     </Pressable>
                   </View>
 
                   {/* Event Date */}
                   <View style={styles.infoRow}>
-                    <Ionicons name="calendar-outline" size={15} color={BLACK} />
+                    <Ionicons name="calendar-outline" size={15} color={theme.textSecondary} />
                     <ThemedText style={styles.infoText} numberOfLines={1}>
                       {formatEventDate(item.startTime)}
                     </ThemedText>
@@ -275,7 +273,7 @@ export default function HomeScreen() {
 
                   {/* Event Location */}
                   <View style={[styles.infoRow, styles.rowGap]}>
-                    <Ionicons name="location-outline" size={15} color={BLACK} />
+                    <Ionicons name="location-outline" size={15} color={theme.textSecondary} />
                     <ThemedText style={styles.infoText} numberOfLines={1}>
                       {item.location || "Location not specified"}
                     </ThemedText>
@@ -284,7 +282,7 @@ export default function HomeScreen() {
                   {/* Event Footer */}
                   <View style={[styles.footer, styles.rowGap]}>
                     <View style={styles.infoRow}>
-                      <Ionicons name="cash-outline" size={15} color={BLACK} />
+                      <Ionicons name="cash-outline" size={15} color={theme.textSecondary} />
                       <ThemedText style={styles.infoText}>
                         View ticket prices
                       </ThemedText>
@@ -319,7 +317,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: 25 },
 
@@ -342,11 +340,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: Radius.medium,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.controlBorder,
     gap: 8,
+    backgroundColor: theme.surface,
     marginBottom: 18,
   },
-  searchInput: { flex: 1, fontSize: 14, height: "100%", color: BLACK },
+  searchInput: { flex: 1, fontSize: 14, height: "100%", color: theme.text },
 
   // Filters
   filters: { flexDirection: "row", gap: 10, marginBottom: 18 },
@@ -359,9 +358,9 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: Radius.small,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
   },
-  filterActive: { backgroundColor: PURPLE, borderColor: PURPLE },
+  filterActive: { backgroundColor: BrandColors.purple, borderColor: BrandColors.purple },
   filterText: { fontSize: 12, lineHeight: 14, fontWeight: "500" },
   filterTextActive: { color: BrandColors.white },
 
@@ -378,13 +377,13 @@ const styles = StyleSheet.create({
   },
   empty: { textAlign: "center", fontSize: 12 },
   retryButton: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     paddingHorizontal: 18,
     paddingVertical: 8,
     borderRadius: Radius.small,
   },
   retryText: {
-    color: WHITE,
+    color: BrandColors.white,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -399,13 +398,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: Radius.large,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   cover: {
     width: 90,
     height: 95,
     borderRadius: Radius.medium,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
   },
   cardBody: { flex: 1 },
   titleRow: {
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   viewButton: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     paddingHorizontal: 10,
     width: 80,
     height: 25,
@@ -446,4 +446,4 @@ const styles = StyleSheet.create({
   },
 
   pressed: { opacity: 0.85 },
-});
+}));

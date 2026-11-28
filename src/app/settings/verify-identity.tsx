@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
@@ -28,6 +29,7 @@ import { chooseAccountImage } from "@/lib/account-image";
 import { isAdult } from "@/lib/signup";
 
 export default function VerifyIdentityScreen() {
+  const { theme, styles } = useStyles();
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,7 +129,7 @@ export default function VerifyIdentityScreen() {
         }
       }}
     >
-      {loading && <ActivityIndicator color="#6B2CF5" />}
+      {loading && <ActivityIndicator color={theme.accent} />}
       {loadProblem !== "" && (
         <AccountMessage error>{loadProblem}</AccountMessage>
       )}
@@ -286,7 +288,7 @@ export default function VerifyIdentityScreen() {
             <Ionicons
               name={agreed ? "checkbox" : "square-outline"}
               size={26}
-              color="#6B2CF5"
+              color={theme.accent}
             />
             <ThemedText style={styles.agreementText}>
               I agree to the host agreement (version 2026-01).
@@ -315,18 +317,18 @@ export default function VerifyIdentityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   label: { fontSize: 15, fontWeight: "600" },
   hint: { fontSize: 13 },
   options: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   option: {
     borderWidth: 1,
-    borderColor: "#B3B3B3",
+    borderColor: theme.controlBorder,
     borderRadius: 12,
     padding: 12,
   },
-  selected: { borderColor: "#6B2CF5", backgroundColor: "#F1EDFC" },
-  selectedText: { color: "#6B2CF5", fontWeight: "600" },
+  selected: { borderColor: theme.accent, backgroundColor: theme.accentSurface },
+  selectedText: { color: theme.accent, fontWeight: "600" },
   preview: { width: "100%", height: 200, borderRadius: 12 },
   agreement: {
     flexDirection: "row",
@@ -335,4 +337,4 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   agreementText: { flex: 1 },
-});
+}));

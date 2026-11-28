@@ -138,7 +138,7 @@ export default function TableBuyScreen() {
         ]}
       >
         {reserveError && (
-          <ThemedText accessibilityRole="alert" style={styles.error}>
+          <ThemedText accessibilityRole="alert" themeColor="danger" style={styles.error}>
             {reserveError}
           </ThemedText>
         )}
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontWeight: "600" },
   footer: { paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
-  error: { color: BrandColors.error, marginBottom: Spacing.two },
+  error: { marginBottom: Spacing.two },
   payButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,

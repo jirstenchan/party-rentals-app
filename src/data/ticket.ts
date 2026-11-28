@@ -80,3 +80,9 @@ export const addTicket = (input: AddTicketInput) =>
     method: "POST",
     body: JSON.stringify(input),
   });
+
+export const extendTicketDeadline = (ticketId: string, salesEnd: string) =>
+  request<EventTicket>(`/api/ticket?id=${encodeURIComponent(ticketId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ salesEnd }),
+  });

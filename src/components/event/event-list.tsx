@@ -15,12 +15,14 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
+import { isUpcomingEvent, useEventStartClock } from "@/hooks/use-event-start-clock";
 import { EventDto, fetchEvents } from "@/lib/events-api";
 
 type Props = {
   scope?: "mine"; // omit for the Home list
   emptyText: string;
   showStatus?: boolean; // show draft/cancelled labels
+  upcomingOnly?: boolean;
   style?: StyleProp<ViewStyle>; // style for the list itself
   contentContainerStyle?: StyleProp<ViewStyle>; // padding inside the scroll area
   //onPress?: (event: EventDto) => void;
@@ -39,6 +41,7 @@ export function EventList({
   scope,
   emptyText,
   showStatus,
+  upcomingOnly = false,
   style,
   contentContainerStyle,
 }: Props) {
@@ -46,6 +49,10 @@ export function EventList({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const now = useEventStartClock(upcomingOnly ? events : []);
+  const displayedEvents = upcomingOnly
+    ? events.filter((event) => isUpcomingEvent(event, now))
+    : events;
 
   const router = useRouter();
 
@@ -78,7 +85,7 @@ export function EventList({
     <FlatList
       style={[styles.list, style]}
       contentContainerStyle={[styles.content, contentContainerStyle]}
-      data={events}
+      data={displayedEvents}
       keyExtractor={(item) => item.id}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -90,6 +97,7 @@ export function EventList({
       }
       renderItem={({ item }) => (
         <Pressable
+          accessibilityRole="button"
           onPress={() =>
             router.push({ pathname: "/event/[id]", params: { id: item.id } })
           }

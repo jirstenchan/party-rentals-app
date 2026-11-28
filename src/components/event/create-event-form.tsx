@@ -1,7 +1,16 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { ConfirmCreateModal } from "@/components/event/create-event-confirmation-modal";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useRef, useState, type ComponentRef, type ReactNode } from "react";
+import {
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import {
   DateTimePartField,
@@ -14,7 +23,7 @@ import { TicketDraftList } from "@/components/event/ticket-draft-list";
 
 import { TableModal } from "@/components/event/table-modal";
 import { TicketModal } from "@/components/event/ticket-modal";
-import { Radius } from "@/constants/theme";
+import { BrandColors, Radius } from "@/constants/theme";
 import { createEvent, deleteEvent } from "@/data/event";
 import {
   deleteEventGraphic,
@@ -29,20 +38,30 @@ import { problemFor } from "@/data/problem";
 import { addTable, NewTable } from "@/data/table";
 import { addTicket, NewTicket } from "@/data/ticket";
 
-const PURPLE = "#6B2CF5";
 
 type Props = {
   onCreated: () => void | Promise<void>;
+  onInvalidField: (field: ComponentRef<typeof View>) => void;
 };
 
-type EventSchedule = {
+type EventToCreate = {
+  name: string;
+  description: string;
+  location: string;
+  capacity: number;
   startTime: Date;
   endTime: Date;
+  map: PickedImage;
+  qrPayment: PickedImage;
+  eventGraphicImage: PickedImage;
+  tickets: NewTicket[];
+  tables: NewTable[];
 };
 
-export function CreateEventForm({ onCreated }: Props) {
-  const [scheduleToConfirm, setScheduleToConfirm] =
-    useState<EventSchedule | null>(null);
+export function CreateEventForm({ onCreated, onInvalidField }: Props) {
+  const { theme, styles } = useStyles();
+  const [eventToConfirm, setEventToConfirm] = useState<EventToCreate | null>(null);
+  const creating = useRef(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -51,7 +70,7 @@ export function CreateEventForm({ onCreated }: Props) {
   const [startClock, setStartClock] = useState("");
   const [endDate, setEndDate] = useState("");
   const [endClock, setEndClock] = useState("");
-  const [scheduleError, setScheduleError] = useState("");
+  const [validationTime, setValidationTime] = useState<number | null>(null);
   const [tickets, setTickets] = useState<NewTicket[]>([]);
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [status, setStatus] = useState("");
@@ -62,6 +81,98 @@ export function CreateEventForm({ onCreated }: Props) {
   const [eventGraphicImage, setEventGraphicImage] =
     useState<PickedImage | null>(null);
 
+  const title = name.trim();
+  const summary = description.trim();
+  const venue = location.trim();
+  const capacityNumber = Number(capacity);
+  const startTime = parseLocalDateTime(startDate, startClock);
+  const endTime = parseLocalDateTime(endDate, endClock);
+  const eventErrors = (at: number | null) => ({
+    coverPhoto: !eventGraphicImage ? "Add an event cover photo." : null,
+    title: !title ? "Enter an event title." : null,
+    description: !summary ? "Enter an event description." : null,
+    startDate: !startDate
+      ? "Select a start date."
+      : startClock && !startTime
+        ? "Choose a valid start date and time."
+        : null,
+    startClock: !startClock
+      ? "Select a start time."
+      : startTime && at !== null && startTime.getTime() <= at
+        ? "Choose a start date and time in the future."
+        : null,
+    endDate: !endDate
+      ? "Select an end date."
+      : endClock && !endTime
+        ? "Choose a valid end date and time."
+        : null,
+    endClock: !endClock
+      ? "Select an end time."
+      : startTime && endTime && endTime <= startTime
+        ? "The event must end after it starts."
+        : null,
+    location: !venue ? "Enter the event location." : null,
+    capacity: !capacity.trim()
+      ? "Enter the event capacity."
+      : !Number.isInteger(capacityNumber) || capacityNumber <= 0
+        ? "Capacity must be a positive whole number."
+        : null,
+    map: !map ? "Upload a venue map." : null,
+    qrPayment: !qrPayment ? "Upload a payment QR code." : null,
+    tickets: tickets.length === 0 ? "Add at least one ticket." : null,
+  });
+  const validationErrors = eventErrors(validationTime);
+  type FieldName = keyof typeof validationErrors;
+  const fieldViews = useRef<
+    Partial<Record<FieldName, ComponentRef<typeof View> | null>>
+  >({});
+  const scheduleFields = [
+    {
+      label: "Start",
+      dateField: "startDate",
+      clockField: "startClock",
+      date: startDate,
+      clock: startClock,
+      setDate: setStartDate,
+      setClock: setStartClock,
+      initialDate: undefined,
+    },
+    {
+      label: "End",
+      dateField: "endDate",
+      clockField: "endClock",
+      date: endDate,
+      clock: endClock,
+      setDate: setEndDate,
+      setClock: setEndClock,
+      initialDate: startDate,
+    },
+  ] as const;
+
+  function renderField(
+    field: FieldName,
+    control: ReactNode,
+    style?: StyleProp<ViewStyle>,
+  ) {
+    const error = validationTime !== null ? validationErrors[field] : null;
+    return (
+      <View
+        collapsable={false}
+        ref={(view) => {
+          fieldViews.current[field] = view;
+        }}
+        style={[styles.field, style]}
+      >
+        {control}
+        {error ? (
+          <Text accessibilityRole="alert" style={styles.validationError}>
+            {error}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
   function resetForm() {
     setName("");
     setDescription("");
@@ -71,7 +182,7 @@ export function CreateEventForm({ onCreated }: Props) {
     setStartClock("");
     setEndDate("");
     setEndClock("");
-    setScheduleError("");
+    setValidationTime(null);
     setTickets([]);
     setTables([]);
     setMap(null);
@@ -79,56 +190,48 @@ export function CreateEventForm({ onCreated }: Props) {
     setEventGraphicImage(null);
   }
 
-  function reviewSchedule() {
-    if (!startDate || !startClock || !endDate || !endClock) {
-      setScheduleError("Choose a date and time for both the start and end.");
+  function reviewEvent() {
+    if (creating.current) return;
+    setStatus("");
+    const now = Date.now();
+    setValidationTime(now);
+    const errors = eventErrors(now);
+    const firstInvalid = (Object.keys(errors) as FieldName[]).find(
+      (field) => errors[field] !== null,
+    );
+    if (firstInvalid) {
+      const field = fieldViews.current[firstInvalid];
+      if (field) onInvalidField(field);
+      return;
+    }
+    if (
+      !startTime ||
+      !endTime ||
+      !map ||
+      !qrPayment ||
+      !eventGraphicImage
+    ) {
       return;
     }
 
-    const startTime = parseLocalDateTime(startDate, startClock);
-    const endTime = parseLocalDateTime(endDate, endClock);
-
-    if (!startTime || !endTime) {
-      setScheduleError(
-        !startTime
-          ? "Choose a valid start date and time."
-          : "Choose a valid end date and time.",
-      );
-      return;
-    }
-
-    if (endTime <= startTime) {
-      setScheduleError("The event must end after it starts.");
-      return;
-    }
-
-    setScheduleError("");
-    setScheduleToConfirm({ startTime, endTime });
+    setEventToConfirm({
+      name: title,
+      description: summary,
+      location: venue,
+      capacity: capacityNumber,
+      startTime,
+      endTime,
+      map,
+      qrPayment,
+      eventGraphicImage,
+      tickets,
+      tables,
+    });
   }
 
-  async function handleCreate({ startTime, endTime }: EventSchedule) {
-    const capacityNumber = Number(capacity);
-
-    if (
-      !name.trim() ||
-      !description.trim() ||
-      !location.trim() ||
-      !capacity.trim()
-    ) {
-      setStatus("Please fill in all fields.");
-      return;
-    }
-
-    if (!Number.isInteger(capacityNumber) || capacityNumber <= 0) {
-      setStatus("Capacity must be a positive whole number.");
-      return;
-    }
-
-    if (tickets.length === 0) {
-      setStatus("Add at least one ticket.");
-      return;
-    }
-
+  async function handleCreate(event: EventToCreate) {
+    if (creating.current) return;
+    creating.current = true;
     let uploadedMapPath: string | null = null;
     let uploadedQrPath: string | null = null;
     let uploadedGraphicImagePath: string | null = null;
@@ -147,40 +250,28 @@ export function CreateEventForm({ onCreated }: Props) {
     try {
       setStatus("Creating...");
 
-      let mapUrl: string | null = null;
-      let paymentQrUrl: string | null = null;
-      let eventImageUrl: string | null = null;
-      if (map) {
-        const uploaded = await uploadEventImage(map);
-        uploadedMapPath = uploaded.path;
-        mapUrl = uploaded.publicUrl;
-      }
-      if (qrPayment) {
-        const uploaded = await uploadHostQr(qrPayment);
-        uploadedQrPath = uploaded.path;
-        paymentQrUrl = uploaded.publicUrl;
-      }
-      if (eventGraphicImage) {
-        const uploaded = await uploadEventGraphic(eventGraphicImage);
-        uploadedGraphicImagePath = uploaded.path;
-        eventImageUrl = uploaded.publicUrl;
-      }
+      const uploadedMap = await uploadEventImage(event.map);
+      uploadedMapPath = uploadedMap.path;
+      const uploadedQr = await uploadHostQr(event.qrPayment);
+      uploadedQrPath = uploadedQr.path;
+      const uploadedGraphic = await uploadEventGraphic(event.eventGraphicImage);
+      uploadedGraphicImagePath = uploadedGraphic.path;
 
       const created = await createEvent({
-        name: name.trim(),
-        description: description.trim(),
-        location: location.trim(),
-        capacity: capacityNumber,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
+        name: event.name,
+        description: event.description,
+        location: event.location,
+        capacity: event.capacity,
+        startTime: event.startTime.toISOString(),
+        endTime: event.endTime.toISOString(),
         status: "published",
-        mapUrl,
-        paymentQrUrl,
-        eventImageUrl,
+        mapUrl: uploadedMap.publicUrl,
+        paymentQrUrl: uploadedQr.publicUrl,
+        eventImageUrl: uploadedGraphic.publicUrl,
       });
 
       const ticketResults = await Promise.allSettled(
-        tickets.map((ticket) =>
+        event.tickets.map((ticket) =>
           addTicket({
             eventId: created.id,
             ...ticket,
@@ -201,7 +292,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
       // Tables are optional, so they are only submitted once tickets succeed
       const tableResults = await Promise.allSettled(
-        tables.map((table) => addTable({ eventId: created.id, ...table })),
+        event.tables.map((table) => addTable({ eventId: created.id, ...table })),
       );
 
       if (tableResults.some((r) => r.status === "rejected")) {
@@ -224,12 +315,15 @@ export function CreateEventForm({ onCreated }: Props) {
           problemFor(e) +
           (cleanupSucceeded ? "" : " Uploaded images may need cleanup."),
       );
+    } finally {
+      creating.current = false;
     }
   }
 
+  const isCreating = status === "Creating...";
   const isError =
     !!status &&
-    status !== "Creating..." &&
+    !isCreating &&
     !status.startsWith("Created:") &&
     !status.startsWith("The event was created");
 
@@ -237,111 +331,111 @@ export function CreateEventForm({ onCreated }: Props) {
     <View style={styles.form}>
       {/* Photo and title */}
       <View style={styles.titleRow}>
-        <ImagePickerField
-          value={eventGraphicImage}
-          onChange={setEventGraphicImage}
-          text=""
-          showPreview={false}
-        >
-          {eventGraphicImage ? (
-            <Image
-              source={{ uri: eventGraphicImage.uri }}
-              style={styles.eventImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.coverPhoto}>
-              <Ionicons name="image-outline" size={32} color="#8A8A93" />
-            </View>
-          )}
-        </ImagePickerField>
+        {renderField(
+          "coverPhoto",
+          <ImagePickerField
+            value={eventGraphicImage}
+            onChange={setEventGraphicImage}
+            text="Add event cover photo"
+            showPreview={false}
+          >
+            {eventGraphicImage ? (
+              <Image
+                source={{ uri: eventGraphicImage.uri }}
+                style={styles.eventImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.coverPhoto}>
+                <Ionicons name="image-outline" size={32} color={theme.textSecondary} />
+                <Text style={styles.coverPhotoLabel}>Cover photo</Text>
+              </View>
+            )}
+          </ImagePickerField>,
+          styles.coverPhotoField,
+        )}
 
-        <FormInput
-          label="Event Title"
-          value={name}
-          onChangeText={setName}
-          placeholder="e.g. Rooftop Vibes"
-          containerStyle={styles.titleColumn}
-          cardStyle={styles.titleCard}
-        />
+        {renderField(
+          "title",
+          <FormInput
+            label="Event Title"
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. Rooftop Vibes"
+            cardStyle={styles.titleCard}
+          />,
+          styles.fieldColumn,
+        )}
       </View>
 
-      <FormInput
-        label="Event Description"
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Tell people what to expect..."
-        multiline
-        cardStyle={styles.descriptionCard}
-      />
+      {renderField(
+        "description",
+        <FormInput
+          label="Event Description"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Tell people what to expect..."
+          multiline
+          cardStyle={styles.descriptionCard}
+        />,
+      )}
 
       <View style={styles.schedule}>
-        {[
-          {
-            label: "Start",
-            date: startDate,
-            clock: startClock,
-            setDate: setStartDate,
-            setClock: setStartClock,
-          },
-          {
-            label: "End",
-            date: endDate,
-            clock: endClock,
-            setDate: setEndDate,
-            setClock: setEndClock,
-            initialDate: startDate,
-          },
-        ].map(({ label, date, clock, setDate, setClock, initialDate }) => (
-          <View key={label} style={styles.scheduleGroup}>
-            <Text style={styles.scheduleLabel}>{label}</Text>
-            <View style={styles.scheduleRow}>
-              <DateTimePartField
-                label={`${label} date`}
-                mode="date"
-                value={date}
-                initialDate={initialDate}
-                onChange={(value) => {
-                  setDate(value);
-                  setScheduleError("");
-                }}
-              />
-              <DateTimePartField
-                label={`${label} time`}
-                mode="time"
-                value={clock}
-                onChange={(value) => {
-                  setClock(value);
-                  setScheduleError("");
-                }}
-              />
+        {scheduleFields.map(
+          ({ label, dateField, clockField, date, clock, setDate, setClock, initialDate }) => (
+            <View key={label} style={styles.scheduleGroup}>
+              <Text style={styles.scheduleLabel}>{label}</Text>
+              <View style={styles.scheduleRow}>
+                {renderField(
+                  dateField,
+                  <DateTimePartField
+                    label={`${label} date`}
+                    mode="date"
+                    value={date}
+                    initialDate={initialDate}
+                    onChange={setDate}
+                  />,
+                  styles.fieldColumn,
+                )}
+                {renderField(
+                  clockField,
+                  <DateTimePartField
+                    label={`${label} time`}
+                    mode="time"
+                    value={clock}
+                    onChange={setClock}
+                  />,
+                  styles.fieldColumn,
+                )}
+              </View>
             </View>
-          </View>
-        ))}
-        {scheduleError ? (
-          <Text accessibilityRole="alert" style={styles.statusError}>
-            {scheduleError}
-          </Text>
-        ) : null}
+          ),
+        )}
       </View>
 
-      <FormInput
-        label="Venue / Location"
-        value={location}
-        onChangeText={setLocation}
-        placeholder="Where is it happening?"
-        icon={<Ionicons name="location-outline" size={30} color="#000" />}
-        cardStyle={styles.venueCard}
-      />
+      {renderField(
+        "location",
+        <FormInput
+          label="Venue / Location"
+          value={location}
+          onChangeText={setLocation}
+          placeholder="Where is it happening?"
+          icon={<Ionicons name="location-outline" size={30} color={theme.text} />}
+          cardStyle={styles.venueCard}
+        />,
+      )}
 
-      <FormInput
-        label="Capacity"
-        value={capacity}
-        onChangeText={(value) => setCapacity(value.replace(/[^0-9]/g, ""))}
-        placeholder="e.g. 100"
-        keyboardType="numeric"
-        cardStyle={styles.capacityCard}
-      />
+      {renderField(
+        "capacity",
+        <FormInput
+          label="Capacity"
+          value={capacity}
+          onChangeText={(value) => setCapacity(value.replace(/[^0-9]/g, ""))}
+          placeholder="e.g. 100"
+          keyboardType="numeric"
+          cardStyle={styles.capacityCard}
+        />,
+      )}
 
       {/* Venue map */}
       <View style={styles.sectionHeader}>
@@ -355,25 +449,28 @@ export function CreateEventForm({ onCreated }: Props) {
         />
       </View>
 
-      <ImagePickerField
-        value={map}
-        onChange={setMap}
-        text="Upload Venue Map"
-        showPreview={false}
-      >
-        {map ? (
-          <Image
-            source={{ uri: map.uri }}
-            style={styles.mapImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="image-outline" size={72} color="#85858F" />
-            <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
-          </View>
-        )}
-      </ImagePickerField>
+      {renderField(
+        "map",
+        <ImagePickerField
+          value={map}
+          onChange={setMap}
+          text="Upload Venue Map"
+          showPreview={false}
+        >
+          {map ? (
+            <Image
+              source={{ uri: map.uri }}
+              style={styles.mapImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <Ionicons name="image-outline" size={72} color={theme.textSecondary} />
+              <Text style={styles.mapPlaceholderText}>Upload Venue Map</Text>
+            </View>
+          )}
+        </ImagePickerField>,
+      )}
 
       {/* QR Payment */}
       <View style={styles.sectionHeader}>
@@ -388,35 +485,41 @@ export function CreateEventForm({ onCreated }: Props) {
         />
       </View>
 
-      <ImagePickerField
-        value={qrPayment}
-        onChange={setQrPayment}
-        text="Upload QR Payment"
-        showPreview={false}
-        aspect={[1, 1]}
-      >
-        {qrPayment ? (
-          <Image
-            source={{ uri: qrPayment.uri }}
-            style={styles.qrImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="image-outline" size={72} color="#85858F" />
-            <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
-          </View>
-        )}
-      </ImagePickerField>
+      {renderField(
+        "qrPayment",
+        <ImagePickerField
+          value={qrPayment}
+          onChange={setQrPayment}
+          text="Upload QR Payment"
+          showPreview={false}
+          aspect={[1, 1]}
+        >
+          {qrPayment ? (
+            <Image
+              source={{ uri: qrPayment.uri }}
+              style={styles.qrImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <Ionicons name="image-outline" size={72} color={theme.textSecondary} />
+              <Text style={styles.mapPlaceholderText}>Upload QR Payment</Text>
+            </View>
+          )}
+        </ImagePickerField>,
+      )}
 
       {/* Ticket drafts */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Tickets</Text>
+      {renderField(
+        "tickets",
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Tickets</Text>
 
-        <Pressable onPress={() => setTicketModalVisible(true)}>
-          <Text style={styles.sectionAction}>+ Add Tickets</Text>
-        </Pressable>
-      </View>
+          <Pressable onPress={() => setTicketModalVisible(true)}>
+            <Text style={styles.sectionAction}>+ Add Tickets</Text>
+          </Pressable>
+        </View>,
+      )}
 
       <TicketDraftList
         tickets={tickets}
@@ -429,7 +532,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
       {/* Table drafts */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Tables</Text>
+        <Text style={styles.sectionTitle}>Tables (optional)</Text>
 
         <Pressable onPress={() => setTableModalVisible(true)}>
           <Text style={styles.sectionAction}>+ Add Tables</Text>
@@ -446,16 +549,22 @@ export function CreateEventForm({ onCreated }: Props) {
       />
 
       {status ? (
-        <Text style={[styles.status, isError && styles.statusError]}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[styles.status, isError && styles.statusError]}
+        >
           {status}
         </Text>
       ) : null}
 
       <Pressable
-        onPress={reviewSchedule}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isCreating, busy: isCreating }}
+        onPress={reviewEvent}
+        disabled={isCreating}
         style={({ pressed }) => [
           styles.createButton,
-          pressed && styles.createButtonPressed,
+          (pressed || isCreating) && styles.createButtonPressed,
         ]}
       >
         <Text style={styles.createButtonText}>Create Event</Text>
@@ -476,12 +585,12 @@ export function CreateEventForm({ onCreated }: Props) {
         />
 
         <ConfirmCreateModal
-          visible={scheduleToConfirm !== null}
-          onCancel={() => setScheduleToConfirm(null)}
+          visible={eventToConfirm !== null}
+          onCancel={() => setEventToConfirm(null)}
           onConfirm={() => {
-            if (scheduleToConfirm) {
-              setScheduleToConfirm(null);
-              void handleCreate(scheduleToConfirm);
+            if (eventToConfirm) {
+              setEventToConfirm(null);
+              void handleCreate(eventToConfirm);
             }
           }}
         />
@@ -492,7 +601,7 @@ export function CreateEventForm({ onCreated }: Props) {
 
 const COVER_PHOTO_SIZE = 96;
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   form: {
     gap: 14,
   },
@@ -506,16 +615,27 @@ const styles = StyleSheet.create({
     gap: 14,
     alignItems: "flex-start",
   },
-  titleColumn: {
+  field: {
+    gap: 4,
+  },
+  fieldColumn: {
     flex: 1,
+    minWidth: 0,
+  },
+  coverPhotoField: {
+    width: COVER_PHOTO_SIZE,
   },
   coverPhoto: {
     width: COVER_PHOTO_SIZE,
     height: COVER_PHOTO_SIZE,
     borderRadius: 14,
-    backgroundColor: "#E6E3F5",
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
+  },
+  coverPhotoLabel: {
+    color: theme.textSecondary,
+    fontSize: 12,
   },
   titleCard: {
     minHeight: 96,
@@ -537,7 +657,7 @@ const styles = StyleSheet.create({
   scheduleLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   scheduleRow: {
     flexDirection: "row",
@@ -562,17 +682,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
   },
   sectionAction: {
     fontSize: 16,
     fontWeight: "500",
-    color: PURPLE,
+    color: theme.accent,
   },
   mapPlaceholder: {
     height: 300,
     borderRadius: 20,
-    backgroundColor: "#EBEBEB",
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -580,18 +700,23 @@ const styles = StyleSheet.create({
   mapPlaceholderText: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#85858F",
+    color: theme.textSecondary,
   },
   status: {
-    color: "#000",
+    color: theme.text,
     fontSize: 14,
     textAlign: "center",
   },
   statusError: {
-    color: "#D93025",
+    color: theme.danger,
+  },
+  validationError: {
+    color: theme.danger,
+    fontSize: 14,
+    lineHeight: 21,
   },
   createButton: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     height: 55,
     borderRadius: Radius.large,
     alignItems: "center",
@@ -622,4 +747,4 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 8,
   },
-});
+}));

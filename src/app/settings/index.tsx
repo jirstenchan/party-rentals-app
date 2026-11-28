@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -7,8 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoutConfirmationModal } from "@/components/settings/logout-confirmation-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
+import { Radius, Spacing } from "@/constants/theme";
 
 // Account rows lead to the same personal details and verification flow as the website.
 const SECTIONS = [
@@ -60,8 +60,8 @@ const SECTIONS = [
 ] as const;
 
 export default function SettingsScreen() {
+  const { theme, styles } = useStyles();
   const router = useRouter();
-  const theme = useTheme();
   const [logoutVisible, setLogoutVisible] = useState(false);
 
   return (
@@ -75,7 +75,7 @@ export default function SettingsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="chevron-back" size={28} color={PURPLE} />
+            <Ionicons name="chevron-back" size={28} color={theme.accent} />
           </Pressable>
 
           <ThemedText style={styles.headerTitle}>SETTINGS</ThemedText>
@@ -137,7 +137,7 @@ export default function SettingsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Log Out"
           >
-            <Ionicons name="log-out-outline" size={28} color={PURPLE} />
+            <Ionicons name="log-out-outline" size={28} color={theme.accent} />
             <ThemedText style={styles.logOutText}>Log Out</ThemedText>
           </Pressable>
         </View>
@@ -152,10 +152,8 @@ export default function SettingsScreen() {
   );
 }
 
-const PURPLE = BrandColors.purple;
-const PURPLE_TINT = "#F4EFFD";
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -174,7 +172,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   headerTitle: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "800",
@@ -205,7 +203,7 @@ const styles = StyleSheet.create({
     minHeight: 55,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: BrandColors.border,
+    borderColor: theme.border,
     borderRadius: 16,
   },
   rowLabel: {
@@ -226,14 +224,14 @@ const styles = StyleSheet.create({
     gap: 10,
     height: 55,
     borderRadius: Radius.medium,
-    backgroundColor: PURPLE_TINT,
+    backgroundColor: theme.accentSurface,
   },
   logOutPressed: {
-    backgroundColor: "#E2D5FA",
+    backgroundColor: theme.accentSurfacePressed,
     transform: [{ scale: 0.98 }],
   },
   logOutText: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 18,
     lineHeight: 28,
     fontWeight: "700",
@@ -241,4 +239,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
   },
-});
+}));

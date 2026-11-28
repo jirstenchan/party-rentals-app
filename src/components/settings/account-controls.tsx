@@ -17,29 +17,32 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import type { AccountTier } from "@/lib/account-api";
 
 export function AccountSettingsPage({
   title,
   children,
+  onBack,
   refreshing = false,
   onRefresh,
 }: {
   title: string;
   children: ReactNode;
+  onBack?: () => void;
   refreshing?: boolean;
   onRefresh?: () => void;
 }) {
+  const { theme, styles } = useStyles();
   const router = useRouter();
   return (
     <ThemedView style={styles.fill}>
       <SafeAreaView style={styles.fill}>
         <View style={styles.header}>
           <Pressable
-            onPress={() =>
+            onPress={onBack ?? (() =>
               router.canGoBack() ? router.back() : router.replace("/settings")
-            }
+            )}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -47,7 +50,7 @@ export function AccountSettingsPage({
             <Ionicons
               name="chevron-back"
               size={28}
-              color={BrandColors.purple}
+              color={theme.accent}
             />
           </Pressable>
           <ThemedText style={styles.heading}>{title}</ThemedText>
@@ -74,9 +77,9 @@ export function AccountSettingsPage({
 }
 
 export function AccountCard({ children }: { children: ReactNode }) {
-  const theme = useTheme();
+  const { styles } = useStyles();
   return (
-    <View style={[styles.card, { borderColor: theme.backgroundSelected }]}>
+    <View style={styles.card}>
       {children}
     </View>
   );
@@ -95,6 +98,7 @@ export function AccountButton({
   disabled?: boolean;
   secondary?: boolean;
 }) {
+  const { theme, styles } = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -108,7 +112,7 @@ export function AccountButton({
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={secondary ? BrandColors.purple : "#fff"} />
+        <ActivityIndicator color={secondary ? theme.accent : BrandColors.white} />
       ) : (
         <ThemedText
           style={[styles.buttonText, secondary && styles.secondaryText]}
@@ -135,7 +139,7 @@ export function AccountField({
   keyboardType?: KeyboardTypeOptions;
   error?: string;
 }) {
-  const theme = useTheme();
+  const { scheme, theme, styles } = useStyles();
   return (
     <View style={styles.field}>
       <ThemedText style={styles.label}>{label}</ThemedText>
@@ -145,12 +149,13 @@ export function AccountField({
         onChangeText={onChangeText}
         editable={editable}
         keyboardType={keyboardType}
+        keyboardAppearance={scheme}
         autoCapitalize={keyboardType === "email-address" ? "none" : "words"}
         style={[
           styles.input,
           {
             color: theme.text,
-            borderColor: error ? BrandColors.error : theme.textSecondary,
+            borderColor: error ? theme.danger : theme.controlBorder,
             backgroundColor: editable
               ? theme.background
               : theme.backgroundElement,
@@ -169,6 +174,7 @@ export function AccountMessage({
   children: ReactNode;
   error?: boolean;
 }) {
+  const { styles } = useStyles();
   return (
     <ThemedText
       accessibilityLiveRegion="polite"
@@ -183,40 +189,41 @@ const TIERS = {
   basic: {
     label: "Basic",
     icon: "person-outline",
-    color: "#5A4275",
-    background: "#F1EAF8",
+    tone: "accent",
   },
   verified_guest: {
     label: "Verified guest",
     icon: "shield-checkmark-outline",
-    color: "#166534",
-    background: "#DCFCE7",
+    tone: "success",
   },
   verified_host: {
     label: "Verified host",
     icon: "ribbon-outline",
-    color: "#5B21B6",
-    background: "#EDE9FE",
+    tone: "accent",
   },
 } as const;
 
 export function AccountTierBadge({ tier }: { tier: AccountTier }) {
+  const { theme, styles } = useStyles();
   const info = TIERS[tier];
   if (!info) return null;
+  const color = theme[info.tone];
+  const backgroundColor =
+    theme[info.tone === "success" ? "successSurface" : "accentSurface"];
   return (
     <View
       accessibilityLabel={`Account tier: ${info.label}`}
-      style={[styles.badge, { backgroundColor: info.background }]}
+      style={[styles.badge, { backgroundColor }]}
     >
-      <Ionicons name={info.icon} size={17} color={info.color} />
-      <ThemedText style={[styles.badgeText, { color: info.color }]}>
+      <Ionicons name={info.icon} size={17} color={color} />
+      <ThemedText style={[styles.badgeText, { color }]}>
         {info.label}
       </ThemedText>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   fill: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -230,10 +237,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontWeight: "800",
-    color: BrandColors.purple,
+    color: theme.accent,
   },
   content: { paddingHorizontal: 24, paddingBottom: 40, gap: 18 },
-  card: { borderWidth: 1, borderRadius: 16, padding: 18, gap: 16 },
+  card: {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 18,
+    gap: 16,
+  },
   button: {
     minHeight: 50,
     padding: 12,
@@ -244,11 +258,11 @@ const styles = StyleSheet.create({
   },
   secondary: {
     borderWidth: 1,
-    borderColor: BrandColors.purple,
+    borderColor: theme.accent,
     backgroundColor: "transparent",
   },
   buttonText: { color: "#fff", fontWeight: "700", textAlign: "center" },
-  secondaryText: { color: BrandColors.purple },
+  secondaryText: { color: theme.accent },
   dimmed: { opacity: 0.55 },
   field: { gap: 8 },
   label: { fontWeight: "600", fontSize: 15 },
@@ -259,7 +273,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
   },
-  error: { color: BrandColors.error, fontSize: 14 },
+  error: { color: theme.danger, fontSize: 14 },
   message: { fontSize: 14 },
   badge: {
     alignSelf: "flex-start",
@@ -271,4 +285,4 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   badgeText: { fontWeight: "700", fontSize: 13, lineHeight: 20 },
-});
+}));

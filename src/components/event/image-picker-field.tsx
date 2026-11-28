@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import * as ImagePicker from "expo-image-picker";
 import type { ReactNode } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -27,6 +28,7 @@ export function ImagePickerField({
   showPreview = true,
   children,
 }: Props) {
+  const { styles } = useStyles();
   async function pick() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -89,9 +91,8 @@ export function ImagePickerField({
   );
 }
 
-const PURPLE = "#6B2CF5";
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { alignItems: "flex-end", gap: 8 },
   containerFill: { alignItems: "stretch", alignSelf: "stretch" },
   pressableFill: { width: "100%" },
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   action: {
     fontSize: 16,
     fontWeight: "500",
-    color: PURPLE,
+    color: theme.accent,
   },
   pressed: { opacity: 0.6 },
-});
+}));

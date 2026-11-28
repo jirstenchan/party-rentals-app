@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   Animated,
   Easing,
@@ -8,16 +8,10 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useOnboarding } from "@/lib/onboarding";
 
 export default function LoadingScreen() {
   const router = useRouter();
-  const { seen } = useOnboarding();
-  const progress = useRef(new Animated.Value(0)).current;
-
-  // Keep the latest value in a ref so the animation doesn't restart when `seen` changes
-  const seenRef = useRef(seen);
-  seenRef.current = seen;
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     progress.setValue(0);
@@ -31,7 +25,7 @@ export default function LoadingScreen() {
 
     animation.start(({ finished }) => {
       if (finished) {
-        router.replace(seenRef.current ? "/home" : "/onboarding-1");
+        router.replace("/");
       }
     });
 

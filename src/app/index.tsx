@@ -6,7 +6,7 @@ export default function Index() {
   const session = useSession();
   const { seen } = useOnboarding();
 
-  if (!seen) return <Redirect href="/onboarding-1" />;
+  if (!seen) return <Redirect href="/onboarding" />;
   if (session) return <Redirect href="/home" />;
   return <Redirect href="/login" />;
 }

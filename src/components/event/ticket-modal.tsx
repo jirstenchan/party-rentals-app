@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
+import { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
@@ -31,17 +33,18 @@ function toDateOnly(date: Date) {
 }
 
 export function TicketModal({ visible, onClose, onSave }: Props) {
+  const { styles } = useStyles();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [useSalesWindow, setUseSalesWindow] = useState(false);
-  const [salesStart, setSalesStart] = useState(new Date());
-  const [salesEnd, setSalesEnd] = useState(new Date(Date.now() + WEEK));
+  const [salesStart, setSalesStart] = useState(() => new Date());
+  const [salesEnd, setSalesEnd] = useState(() => new Date(Date.now() + WEEK));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [mounted, setMounted] = useState(visible);
-  const scale = useRef(new Animated.Value(0.8)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [scale] = useState(() => new Animated.Value(0.8));
+  const [opacity] = useState(() => new Animated.Value(0));
 
   function playPop() {
     Animated.parallel([
@@ -97,7 +100,8 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
   }, [visible]);
 
   async function handleSave() {
-    const priceNumber = parseFloat(price);
+    if (saving) return;
+    const priceNumber = Number(price);
     const start = toDateOnly(salesStart);
     const end = toDateOnly(salesEnd);
 
@@ -106,7 +110,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
       return;
     }
 
-    if (Number.isNaN(priceNumber) || priceNumber < 0) {
+    if (!price.trim() || !Number.isFinite(priceNumber) || priceNumber < 0) {
       setError("Enter a valid price (use 0 for free).");
       return;
     }
@@ -128,7 +132,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
 
       onClose();
     } catch (e) {
-      setError("Add failed: " + problemFor(e));
+      setError(e instanceof Error && e.message ? e.message : problemFor(e));
     } finally {
       setSaving(false);
     }
@@ -191,9 +195,12 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
             </>
           )}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+          ) : null}
 
           <Pressable
+            accessibilityRole="button"
             onPress={handleSave}
             disabled={saving}
             style={[styles.saveButton, saving && styles.disabled]}
@@ -204,6 +211,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
           </Pressable>
 
           <Pressable
+            accessibilityRole="button"
             onPress={onClose}
             disabled={saving}
             style={styles.cancelButton}
@@ -216,7 +224,7 @@ export function TicketModal({ visible, onClose, onSave }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: "center",
@@ -227,15 +235,15 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 20,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
   },
   title: {
-    color: "#6B2CF5",
+    color: theme.accent,
     fontSize: 24,
     fontWeight: "800",
   },
   description: {
-    color: "#7A7A7A",
+    color: theme.textSecondary,
     fontSize: 14,
   },
   inputCard: {
@@ -248,16 +256,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   switchLabel: {
-    color: "#000",
+    color: theme.text,
     fontSize: 15,
     fontWeight: "600",
   },
   error: {
-    color: "#D93025",
+    color: theme.danger,
     fontSize: 13,
   },
   saveButton: {
-    backgroundColor: "#6B2CF5",
+    backgroundColor: BrandColors.purple,
     borderRadius: 14,
     alignItems: "center",
     paddingVertical: 14,
@@ -272,11 +280,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cancelText: {
-    color: "#6B2CF5",
+    color: theme.accent,
     fontSize: 16,
     fontWeight: "600",
   },
   disabled: {
     opacity: 0.6,
   },
-});
+}));

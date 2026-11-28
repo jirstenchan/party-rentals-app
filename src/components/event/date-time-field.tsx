@@ -1,3 +1,5 @@
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
@@ -56,6 +58,7 @@ export function DateTimeField({
   containerStyle,
   renderTrigger,
 }: Props) {
+  const { scheme, theme, styles } = useStyles();
   const [iosVisible, setIosVisible] = useState(false);
 
   const openAndroid = () => {
@@ -103,9 +106,10 @@ export function DateTimeField({
             padding: 12,
             fontSize: 16,
             borderRadius: 12,
-            border: "1px solid #D4D4D4",
-            color: "#000000",
-            backgroundColor: "#FFFFFF",
+            border: `1px solid ${theme.controlBorder}`,
+            colorScheme: scheme,
+            color: theme.text,
+            backgroundColor: theme.surface,
           },
         })}
       </View>
@@ -125,6 +129,7 @@ export function DateTimeField({
               value={value}
               mode="datetime"
               display="compact"
+              themeVariant={scheme}
               onValueChange={(_, date) => date && onChange(date)}
               style={styles.iosPicker}
             />
@@ -151,6 +156,7 @@ export function DateTimeField({
                 value={value}
                 mode="datetime"
                 display="spinner"
+                themeVariant={scheme}
                 onValueChange={(_, date) => date && onChange(date)}
               />
 
@@ -183,6 +189,7 @@ export function DateTimePartField({
   onChange,
   initialDate,
 }: DateTimePartProps) {
+  const { scheme, theme, styles } = useStyles();
   const [draft, setDraft] = useState<Date | null>(null);
   const isDate = mode === "date";
   const formatValue = isDate ? toDateValue : toTimeValue;
@@ -214,14 +221,14 @@ export function DateTimePartField({
       onChange: (event: { target: { value: string } }) =>
         onChange(event.target.value),
       style: {
-        flex: 1,
         minWidth: 0,
         padding: 12,
         fontSize: 15,
         borderRadius: 14,
-        border: "1.5px solid #D4D4D4",
-        color: "#000000",
-        backgroundColor: "#FFFFFF",
+        border: `1.5px solid ${theme.controlBorder}`,
+        colorScheme: scheme,
+        color: theme.text,
+        backgroundColor: theme.surface,
       },
     });
   }
@@ -269,7 +276,7 @@ export function DateTimePartField({
                 value={draft}
                 mode={mode}
                 display={isDate ? "inline" : "spinner"}
-                themeVariant="light"
+                themeVariant={scheme}
                 onValueChange={(_, selected) => setDraft(selected)}
               />
               <View style={styles.pickerActions}>
@@ -299,18 +306,18 @@ export function DateTimePartField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   field: {
     gap: 6,
     alignItems: "flex-start",
   },
   label: {
-    color: "#000",
+    color: theme.text,
     fontSize: 14,
     fontWeight: "600",
   },
   value: {
-    color: "#000",
+    color: theme.text,
     fontSize: 15,
   },
   iosPicker: {
@@ -321,16 +328,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#D4D4D4",
-    backgroundColor: "#FFFFFF",
+    borderColor: theme.controlBorder,
+    backgroundColor: theme.surface,
   },
   partButton: {
-    flex: 1,
     justifyContent: "center",
     minHeight: 48,
   },
   placeholder: {
-    color: "#60646C",
+    color: theme.textSecondary,
   },
   backdrop: {
     flex: 1,
@@ -338,7 +344,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
   },
   sheet: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -347,7 +353,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#000",
+    color: theme.text,
     textAlign: "center",
   },
   pickerActions: {
@@ -360,12 +366,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   pickerActionText: {
-    color: "#6B2CF5",
+    color: theme.accent,
     fontSize: 16,
     fontWeight: "600",
   },
   doneButton: {
-    backgroundColor: "#6B2CF5",
+    backgroundColor: BrandColors.purple,
     borderRadius: 20,
     alignItems: "center",
     paddingVertical: 14,
@@ -375,7 +381,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-});
+}));
 
 // // Tyrone's
 // // // src/components/date-time-field.tsx
@@ -388,7 +394,7 @@ const styles = StyleSheet.create({
 
 // // import { ThemedText } from "@/components/themed-text";
 // // import { ThemedView } from "@/components/themed-view";
-// // import { Spacing } from "@/constants/theme";
+// // import { BrandColors, Spacing } from "@/constants/theme";
 
 // // type Props = {
 // //   label: string;

@@ -1,3 +1,4 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router/react-navigation";
@@ -18,7 +19,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BrandColors, Colors, Radius, Spacing } from "@/constants/theme";
+import { BrandColors, Radius, Spacing } from "@/constants/theme";
 import {
   EventDetailDto,
   EventDto,
@@ -28,16 +29,8 @@ import {
 } from "@/lib/events-api";
 
 // Theme colors
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
-const MUTED = BrandColors.muted;
-const BLACK = BrandColors.black;
-const WHITE = BrandColors.white;
-const PLACEHOLDER_BG = Colors.light.backgroundElement;
 
 // Not in the theme yet
-const CIRCLE_BG = "#F1EDFB";
-const ORANGE = "#E08A0B";
 
 // Font sizes (same values as the Event Details UI in theme.ts)
 const FontSize = {
@@ -70,6 +63,7 @@ const formatTime = (iso: string) =>
   });
 
 export default function PaymentProofScreen() {
+  const { theme, styles } = useStyles();
   const router = useRouter();
   const { ticketId, paymentRequired: paymentRequiredParam } =
     useLocalSearchParams<{
@@ -162,7 +156,7 @@ export default function PaymentProofScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Ionicons name="close" size={32} color={PURPLE} />
+            <Ionicons name="close" size={32} color={theme.accent} />
           </Pressable>
         </View>
 
@@ -194,7 +188,7 @@ export default function PaymentProofScreen() {
           {loading ? (
             <ActivityIndicator
               size="large"
-              color={PURPLE}
+              color={theme.accent}
               style={styles.loading}
             />
           ) : ticket && details ? (
@@ -209,7 +203,7 @@ export default function PaymentProofScreen() {
                   />
                 ) : (
                   <View style={[styles.poster, styles.posterPlaceholder]}>
-                    <Ionicons name="image-outline" size={28} color={MUTED} />
+                    <Ionicons name="image-outline" size={28} color={theme.textSecondary} />
                   </View>
                 )}
 
@@ -226,7 +220,7 @@ export default function PaymentProofScreen() {
 
                   {/* Date */}
                   <View style={styles.infoRow}>
-                    <Ionicons name="calendar" size={24} color={PURPLE} />
+                    <Ionicons name="calendar" size={24} color={theme.accent} />
                     <ThemedText style={[styles.infoMain, styles.flex]}>
                       {formatDate(details.startTime)}
                     </ThemedText>
@@ -237,7 +231,7 @@ export default function PaymentProofScreen() {
                     <Ionicons
                       name="stopwatch-outline"
                       size={24}
-                      color={PURPLE}
+                      color={theme.accent}
                     />
                     <ThemedText style={[styles.infoMain, styles.flex]}>
                       {timeText}
@@ -247,7 +241,7 @@ export default function PaymentProofScreen() {
                   {/* Location */}
                   {details.location ? (
                     <View style={styles.infoRow}>
-                      <Ionicons name="location" size={24} color={PURPLE} />
+                      <Ionicons name="location" size={24} color={theme.accent} />
                       <ThemedText style={[styles.infoMain, styles.flex]}>
                         {details.location}
                       </ThemedText>
@@ -260,7 +254,7 @@ export default function PaymentProofScreen() {
                       <MaterialCommunityIcons
                         name="currency-php"
                         size={12}
-                        color={WHITE}
+                        color={BrandColors.white}
                       />
                     </View>
                     <ThemedText style={[styles.infoMain, styles.flex]}>
@@ -273,7 +267,7 @@ export default function PaymentProofScreen() {
               {/* Ticket card (same as Venue Map) */}
               <View style={styles.ticketCard}>
                 <View style={styles.ticketIcon}>
-                  <Ionicons name="ticket-outline" size={46} color={PURPLE} />
+                  <Ionicons name="ticket-outline" size={46} color={theme.accent} />
                 </View>
 
                 <View style={styles.ticketInfo}>
@@ -329,10 +323,10 @@ export default function PaymentProofScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: WHITE,
+    backgroundColor: theme.background,
   },
   safeArea: {
     flex: 1,
@@ -367,7 +361,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: Radius.full,
-    backgroundColor: CIRCLE_BG,
+    backgroundColor: theme.accentSurface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -376,20 +370,20 @@ const styles = StyleSheet.create({
     height: 90,
   },
   confirmTitle: {
-    color: BLACK,
+    color: theme.text,
     fontSize: 28,
     lineHeight: 20,
     fontWeight: "800",
     textAlign: "center",
   },
   confirmSubtitle: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.cardTitle,
     textAlign: "center",
     marginTop: -Spacing.two,
   },
   confirmNote: {
-    color: ORANGE,
+    color: theme.warning,
     fontSize: FontSize.detailLine,
     textAlign: "center",
     marginTop: -Spacing.two,
@@ -402,8 +396,8 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     borderRadius: Radius.large,
     borderWidth: 1.5,
-    borderColor: PURPLE,
-    backgroundColor: WHITE,
+    borderColor: theme.accent,
+    backgroundColor: theme.surface,
   },
   poster: {
     width: 105,
@@ -411,7 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.medium,
   },
   posterPlaceholder: {
-    backgroundColor: PLACEHOLDER_BG,
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -420,13 +414,13 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   eventTitle: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.titleText,
     lineHeight: 26,
     fontWeight: "800",
   },
   hostText: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.host,
   },
   infoRow: {
@@ -435,14 +429,14 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   infoMain: {
-    color: BLACK,
+    color: theme.text,
     fontSize: FontSize.detailLine,
   },
   pesoCircle: {
     width: 24,
     height: 24,
     borderRadius: Radius.full,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -456,8 +450,8 @@ const styles = StyleSheet.create({
     paddingRight: 19,
     borderRadius: Radius.medium,
     borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: WHITE,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   ticketIcon: {
     width: 52,
@@ -470,29 +464,29 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   ticketTitle: {
-    color: BLACK,
+    color: theme.text,
     fontSize: 14,
     fontWeight: "700",
   },
   ticketPrice: {
-    color: "#77737F",
+    color: theme.textSecondary,
     fontSize: 13,
   },
 
   // Footer
   footer: {
     paddingHorizontal: Spacing.three,
-    backgroundColor: WHITE,
+    backgroundColor: theme.surface,
   },
   ctaButton: {
     height: 55,
     borderRadius: Radius.large,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
   ctaButtonText: {
-    color: WHITE,
+    color: BrandColors.white,
     fontSize: FontSize.ctaText,
     fontWeight: "600",
   },
@@ -501,7 +495,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
   },
   homeText: {
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 16,
     fontWeight: "700",
     textDecorationLine: "underline",
@@ -511,10 +505,10 @@ const styles = StyleSheet.create({
   errorText: {
     textAlign: "center",
     marginTop: Spacing.five,
-    color: MUTED,
+    color: theme.textSecondary,
     fontSize: FontSize.notFound,
   },
   pressed: {
     opacity: 0.85,
   },
-});
+}));

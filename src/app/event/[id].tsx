@@ -1,7 +1,8 @@
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -17,10 +18,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BrandColors, Radius } from "@/constants/theme";
+import { isUpcomingEvent, useEventStartClock } from "@/hooks/use-event-start-clock";
+import { useSession } from "@/hooks/use-session";
 import { EventDetailDto, EventTicketDto, fetchEvent } from "@/lib/events-api";
 
-const PURPLE = BrandColors.purple;
-const BORDER = BrandColors.border;
 const MARGIN = 25;
 const COVER_HEIGHT = 180;
 
@@ -104,8 +105,10 @@ const formatPeso = (price: number) =>
   }).format(price);
 
 export default function EventDetailsScreen() {
+  const { theme, styles } = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const session = useSession();
   const { width } = useWindowDimensions();
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -114,6 +117,8 @@ export default function EventDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const now = useEventStartClock(event ? [event] : []);
+  const canEdit = !!event && session?.user.id === event.hostId && isUpcomingEvent(event, now);
 
   const coverWidth = width - MARGIN * 2;
 
@@ -140,13 +145,15 @@ export default function EventDetailsScreen() {
     }
   }, [id]);
 
-  useEffect(() => {
-    setLoading(true);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
 
-    loadEvent().finally(() => {
-      setLoading(false);
-    });
-  }, [loadEvent]);
+      loadEvent().finally(() => {
+        setLoading(false);
+      });
+    }, [loadEvent]),
+  );
 
   // Pull-to-refresh.
   const onRefresh = async () => {
@@ -176,7 +183,7 @@ export default function EventDetailsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="chevron-back" size={20} color={PURPLE} />
+            <Ionicons name="chevron-back" size={20} color={theme.accent} />
           </Pressable>
 
           <ThemedText style={styles.headerTitle}>EVENT DETAILS</ThemedText>
@@ -191,24 +198,16 @@ export default function EventDetailsScreen() {
             <Ionicons
               name={isFavorite ? "heart" : "heart-outline"}
               size={26}
-              color={PURPLE}
+              color={theme.accent}
             />
           </Pressable>
 
-          {/* TODO: Hook up the options menu */}
-          <Pressable
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="More options"
-          >
-            <Ionicons name="ellipsis-vertical" size={24} color={PURPLE} />
-          </Pressable>
         </View>
 
         {/* Loading State */}
         {loading ? (
           <View style={styles.stateContainer}>
-            <ActivityIndicator size="large" color={PURPLE} />
+            <ActivityIndicator size="large" color={theme.accent} />
             <ThemedText style={styles.stateText}>
               Loading event details...
             </ThemedText>
@@ -216,7 +215,7 @@ export default function EventDetailsScreen() {
         ) : error ? (
           /* Error State */
           <View style={styles.stateContainer}>
-            <Ionicons name="alert-circle-outline" size={42} color={PURPLE} />
+            <Ionicons name="alert-circle-outline" size={42} color={theme.accent} />
 
             <ThemedText style={styles.stateText}>{error}</ThemedText>
 
@@ -243,7 +242,7 @@ export default function EventDetailsScreen() {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  tintColor={PURPLE}
+                  tintColor={theme.accent}
                 />
               }
             >
@@ -260,7 +259,7 @@ export default function EventDetailsScreen() {
                   />
                 ) : (
                   <View style={styles.imagePlaceholder}>
-                    <Ionicons name="image-outline" size={40} color={PURPLE} />
+                    <Ionicons name="image-outline" size={40} color={theme.accent} />
                     <ThemedText style={styles.placeholderText}>
                       No event image available
                     </ThemedText>
@@ -279,7 +278,7 @@ export default function EventDetailsScreen() {
                   />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={28} color={PURPLE} />
+                    <Ionicons name="person" size={28} color={theme.accent} />
                   </View>
                 )}
 
@@ -294,12 +293,27 @@ export default function EventDetailsScreen() {
                 </View>
               </View>
 
+              {canEdit && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit Event"
+                  style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
+                  onPress={() => router.push({
+                    pathname: "/event/[id]/edit",
+                    params: { id: event.id },
+                  })}
+                >
+                  <Ionicons name="pencil-outline" size={20} color={theme.accent} />
+                  <ThemedText themeColor="accent" type="smallBold">Edit Event</ThemedText>
+                </Pressable>
+              )}
+
               {/* Event Details */}
               <View style={styles.details}>
                 {/* Date */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailIcon}>
-                    <Ionicons name="calendar" size={22} color={PURPLE} />
+                    <Ionicons name="calendar" size={22} color={theme.accent} />
                   </View>
 
                   <ThemedText style={styles.detailLine}>
@@ -310,7 +324,7 @@ export default function EventDetailsScreen() {
                 {/* Time */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailIcon}>
-                    <Ionicons name="time" size={22} color={PURPLE} />
+                    <Ionicons name="time" size={22} color={theme.accent} />
                   </View>
 
                   <ThemedText style={styles.detailLine}>
@@ -321,7 +335,7 @@ export default function EventDetailsScreen() {
                 {/* Location */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailIcon}>
-                    <Ionicons name="location" size={28} color={PURPLE} />
+                    <Ionicons name="location" size={28} color={theme.accent} />
                   </View>
 
                   <View style={styles.detailText}>
@@ -355,7 +369,7 @@ export default function EventDetailsScreen() {
                       <Ionicons
                         name="people-outline"
                         size={28}
-                        color={PURPLE}
+                        color={theme.accent}
                       />
                     </View>
 
@@ -378,6 +392,7 @@ export default function EventDetailsScreen() {
               <ThemedText style={styles.aboutBody}>
                 {event.description || "No event description available."}
               </ThemedText>
+
             </ScrollView>
 
             {/* Pinned CTA */}
@@ -403,7 +418,7 @@ export default function EventDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
 
@@ -419,7 +434,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     marginLeft: 10,
-    color: PURPLE,
+    color: theme.accent,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: "800",
@@ -439,7 +454,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: Radius.large,
@@ -466,7 +481,7 @@ const styles = StyleSheet.create({
     height: COVER_HEIGHT,
     borderRadius: Radius.large,
     overflow: "hidden",
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
   },
   imagePlaceholder: {
     flex: 1,
@@ -489,13 +504,13 @@ const styles = StyleSheet.create({
     width: 55,
     height: 55,
     borderRadius: Radius.full,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
   },
   avatarPlaceholder: {
     width: 55,
     height: 55,
     borderRadius: Radius.full,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -535,7 +550,7 @@ const styles = StyleSheet.create({
     width: 23,
     height: 23,
     borderRadius: Radius.full,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -548,7 +563,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: BORDER,
+    backgroundColor: theme.backgroundElement,
     marginTop: 16,
   },
 
@@ -575,7 +590,7 @@ const styles = StyleSheet.create({
   cta: {
     height: 55,
     borderRadius: Radius.large,
-    backgroundColor: PURPLE,
+    backgroundColor: BrandColors.purple,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -586,4 +601,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   pressed: { opacity: 0.85 },
-});
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 48,
+    marginTop: 16,
+    borderRadius: Radius.medium,
+    backgroundColor: theme.accentSurface,
+  },
+}));

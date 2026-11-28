@@ -14,7 +14,7 @@ import { DataCollectionConsent } from "@/components/data-collection-consent";
 import { DateOfBirthField } from "@/components/date-of-birth-field";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
+import { BrandColors, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { getSignupError, getSignupMetadata } from "@/lib/signup";
 import {
@@ -97,7 +97,7 @@ export function SignIn() {
 
   const input = [
     styles.input,
-    { color: theme.text, borderColor: theme.textSecondary },
+    { color: theme.text, borderColor: theme.controlBorder },
   ];
 
   return (
@@ -147,7 +147,7 @@ export function SignIn() {
           />
         )}
         <View
-          style={[styles.passwordRow, { borderColor: theme.textSecondary }]}
+          style={[styles.passwordRow, { borderColor: theme.controlBorder }]}
         >
           <TextInput
             value={password}
@@ -183,14 +183,16 @@ export function SignIn() {
             style={input}
           />
         )}
-        {problem !== "" && <ThemedText>{problem}</ThemedText>}
-        {notice !== "" && <ThemedText>{notice}</ThemedText>}
+        {problem !== "" && <ThemedText themeColor="danger">{problem}</ThemedText>}
+        {notice !== "" && <ThemedText themeColor="accent">{notice}</ThemedText>}
         <Button
+          color={BrandColors.purple}
           title={busy ? "Please wait" : creating ? "Create account" : "Sign in"}
           onPress={submit}
           disabled={!valid || busy}
         />
         <Button
+          color={BrandColors.purple}
           title={creating ? "I have an account" : "Create an account"}
           onPress={() => {
             setCreating(!creating);
@@ -201,6 +203,7 @@ export function SignIn() {
         />
         {!creating && (
           <Button
+            color={BrandColors.purple}
             title="Enter verification code"
             disabled={busy}
             onPress={() =>

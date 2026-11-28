@@ -1,3 +1,5 @@
+import { BrandColors } from "@/constants/theme";
+import { createThemeStyles } from "@/hooks/use-theme";
 import { Ionicons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
 import { useState } from "react";
@@ -12,6 +14,7 @@ type Props = {
 };
 
 export function DataCollectionConsent({ agreed, onChange, disabled }: Props) {
+  const { styles } = useStyles();
   const [problem, setProblem] = useState("");
 
   async function openNotice(page: "terms" | "privacy") {
@@ -67,17 +70,17 @@ export function DataCollectionConsent({ agreed, onChange, disabled }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemeStyles((theme) => StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderColor: "#D1D1D6",
+    borderColor: theme.controlBorder,
     borderRadius: 15,
     padding: 16,
     gap: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.surface,
   },
-  title: { fontSize: 17, fontWeight: "700", color: "#000000" },
-  text: { fontSize: 14, lineHeight: 21, color: "#333333" },
+  title: { fontSize: 17, fontWeight: "700", color: theme.text },
+  text: { fontSize: 14, lineHeight: 21, color: theme.textSecondary },
   row: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   agreement: { flex: 1 },
   checkbox: {
@@ -85,13 +88,13 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 7,
     borderWidth: 1.5,
-    borderColor: "#D1D1D6",
+    borderColor: theme.controlBorder,
     alignItems: "center",
     justifyContent: "center",
   },
-  checked: { backgroundColor: "#6C2CF5", borderColor: "#6C2CF5" },
+  checked: { backgroundColor: BrandColors.purple, borderColor: BrandColors.purple },
   links: { flexDirection: "row", flexWrap: "wrap", columnGap: 20 },
   linkButton: { minHeight: 44, justifyContent: "center" },
-  link: { fontSize: 14, color: "#6C2CF5", textDecorationLine: "underline" },
-  problem: { fontSize: 14, color: "#D93025" },
-});
+  link: { fontSize: 14, color: theme.accent, textDecorationLine: "underline" },
+  problem: { fontSize: 14, color: theme.danger },
+}));
